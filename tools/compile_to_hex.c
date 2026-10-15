@@ -1,9 +1,9 @@
 #define MINISCHEME_NO_MAIN 1
 /* Compiles Scheme source (argv[1], or stdin with "-") to MSBC and prints it as hex. Used by tools/build_apps.py and tools/bench_board.py. */
-#include "../minischeme.h"
-#include "../minischeme_internal.h"
-#include "../web_repl/msbc.h"
-#include "../web_repl/wasm/compiler_msbc.h"
+#include "minischeme.h"
+#include "minischeme_internal.h"
+#include "msbc.h"
+#include "compiler_msbc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

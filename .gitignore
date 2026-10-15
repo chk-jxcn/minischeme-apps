@@ -4,9 +4,14 @@ __pycache__/
 *$py.class
 build/
 dist/
+tools/*.exe
+tools/minischeme/
+*.msbc
+*.fasl
 
 # Editor and temporary files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+

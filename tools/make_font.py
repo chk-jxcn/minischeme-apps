@@ -48,7 +48,7 @@ import zlib
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHARSETS_PATH = os.path.join(ROOT, 'web_repl', 'font_charsets.json')
+CHARSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'font_charsets.json')
 ASCII = ''.join(chr(i) for i in range(32, 127))
 FACES = {
     'simsun': 'simsun.ttc', 'msyh': 'msyh.ttc', 'yahei': 'msyh.ttc', 'simhei': 'simhei.ttf',
