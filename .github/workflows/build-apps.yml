@@ -1,0 +1,47 @@
+name: Build and Validate Applications
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Validate App Metadata
+      run: |
+        python -c "
+        import glob, configparser, sys
+        errs = 0
+        for f in glob.glob('apps/*/meta.ini'):
+            cfg = configparser.ConfigParser()
+            cfg.read(f, encoding='utf-8')
+            if 'app' not in cfg or 'id' not in cfg['app']:
+                print(f'Error in {f}: missing [app] id', file=sys.stderr)
+                errs += 1
+            if 'config' not in cfg or 'proxy_url' not in cfg['config']:
+                print(f'Warning in {f}: missing proxy_url', file=sys.stderr)
+        if errs:
+            sys.exit(1)
+        print('All app metadata verified successfully.')
+        "
+
+    - name: Package Applications
+      run: |
+        mkdir -p build/dist
+        tar -czf build/dist/minischeme-apps-source.tar.gz apps/
+
+    - name: Upload App Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: minischeme-apps-bundle
+        path: build/dist/
