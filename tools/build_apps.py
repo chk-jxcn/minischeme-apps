@@ -231,6 +231,28 @@ def embed_fonts(name, text):
     return USE_FONT_RE.sub(subst, text)
 
 
+def generate_allinone_scm(name, sources):
+    meta_path = os.path.join(ROOT, 'apps', name, 'meta.ini')
+    meta_header = ''
+    if os.path.exists(meta_path):
+        meta_lines = open(meta_path, encoding='utf-8').read().replace('\r\n', '\n').splitlines()
+        meta_header = ';;; =========================================================================\n'
+        meta_header += f';;; MiniScheme Standalone Application: {name}\n'
+        meta_header += ';;; All-in-One Standalone Scheme Source (Libraries Included for WebREPL)\n'
+        meta_header += ';;; =========================================================================\n'
+        for line in meta_lines:
+            meta_header += f';;; {line}\n'
+        meta_header += '\n'
+
+    code_parts = []
+    for s in sources:
+        code_parts.append(f';;; =========================================================================\n'
+                          f';;; Section: {s}\n'
+                          f';;; =========================================================================\n'
+                          + open(os.path.join(ROOT, s), encoding='utf-8').read())
+    return meta_header + '\n\n'.join(code_parts) + '\n'
+
+
 def source_text(sources):
     return '\n'.join(open(os.path.join(ROOT, s), encoding='utf-8').read() for s in sources)
 
@@ -283,12 +305,14 @@ def write_index():
             elif section == 'app' and '=' in t and not t.startswith(';'):
                 k, v = t.split('=', 1)
                 info[k.strip()] = v.split(';')[0].strip()
-        out.append({'id': info.get('id', name[:-5]), 'name': info.get('name', name[:-5]),
+        app_id = info.get('id', name[:-5])
+        out.append({'id': app_id, 'name': info.get('name', app_id),
                     'description': info.get('description', ''), 'version': info.get('version', ''),
                     'pages': int(info.get('pages', '1') or 1), 'api': info.get('api', '1.0'),
                     'extensions': info.get('extensions', ''), 'kind': info.get('kind', 'app') or 'app',
                     'web': read_web(data) is not None,
                     'file': name, 'size': len(data),
+                    'scm': f'{app_id}.allinone.scm',
                     'hash': f'{fnv1a(data):08x}'})
     with open(os.path.join(folder, 'index.json'), 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
@@ -304,7 +328,7 @@ def main():
     ensure_compiler()
     os.makedirs(APPS_DIR, exist_ok=True)
 
-    print(f"[*] Compiling {len(names)} apps to MSBC bytecode in {os.path.relpath(APPS_DIR, ROOT)}/...")
+    print(f"[*] Compiling {len(names)} apps to MSBC bytecode and all-in-one Scheme in {os.path.relpath(APPS_DIR, ROOT)}/...")
     for name in names:
         sources, images, header = APPS[name]
         trailer = meta_trailer(name, source_text(sources))
@@ -315,7 +339,19 @@ def main():
             f.write(data)
         if header:
             write_header(header, data, name)
-        print(f"  [OK] {name}: {len(data)} bytes (meta: {len(trailer)}, web: {len(web)}) -> {name}.msbc")
+
+        # Generate standalone all-in-one Scheme source file
+        allinone_text = generate_allinone_scm(name, sources)
+        dist_allinone = os.path.join(APPS_DIR, f'{name}.allinone.scm')
+        with open(dist_allinone, 'w', encoding='utf-8') as f:
+            f.write(allinone_text)
+
+        # Also store in app directory
+        app_allinone = os.path.join(ROOT, 'apps', name, f'{name}.allinone.scm')
+        with open(app_allinone, 'w', encoding='utf-8') as f:
+            f.write(allinone_text)
+
+        print(f"  [OK] {name}: {len(data)} bytes -> {name}.msbc & {name}.allinone.scm ({len(allinone_text)} chars)")
 
     write_index()
     print("[*] Build completed successfully!")

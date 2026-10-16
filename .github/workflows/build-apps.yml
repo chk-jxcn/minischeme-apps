@@ -58,7 +58,7 @@ jobs:
     - name: Archive MSBC Binaries
       run: |
         cd dist
-        zip -r minischeme-apps-binaries.zip *.msbc index.json
+        zip -r minischeme-apps-binaries.zip *.msbc *.allinone.scm index.json
         cd ..
 
     - name: Upload Build Artifacts
@@ -74,6 +74,7 @@ jobs:
         tag_name: v1.0.0
         files: |
           dist/*.msbc
+          dist/*.allinone.scm
           dist/index.json
           dist/minischeme-apps-binaries.zip
       env:
