@@ -70,10 +70,12 @@ jobs:
         path: dist/
 
     - name: Publish Release Assets (Source & Binaries Separated)
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.0
+        tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v1.0.{0}', github.run_number) }}
+        name: "MiniScheme Apps Release (${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v1.0.{0}', github.run_number) }})"
+        make_latest: true
         files: |
           dist/minischeme-apps-source.zip
           dist/minischeme-apps-binaries.zip
