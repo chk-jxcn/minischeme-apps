@@ -308,15 +308,18 @@ def write_index():
         app_id = info.get('id', name[:-5])
         out.append({'id': app_id, 'name': info.get('name', app_id),
                     'description': info.get('description', ''), 'version': info.get('version', ''),
-                    'pages': int(info.get('pages', '1') or 1), 'api': info.get('api', '1.0'),
+                    'api': info.get('api', '1.0'),
                     'extensions': info.get('extensions', ''), 'kind': info.get('kind', 'app') or 'app',
                     'web': read_web(data) is not None,
                     'file': name, 'size': len(data),
                     'scm': f'{app_id}.allinone.scm',
                     'hash': f'{fnv1a(data):08x}'})
-    with open(os.path.join(folder, 'index.json'), 'w', encoding='utf-8') as f:
-        json.dump(out, f, ensure_ascii=False, indent=1)
-    print(f'[*] Wrote {len(out)} apps to {os.path.relpath(folder, ROOT)}/index.json')
+    for idx_path in [os.path.join(folder, 'index.json'),
+                     os.path.join(ROOT, 'apps', 'index.json'),
+                     os.path.join(ROOT, 'index.json')]:
+        with open(idx_path, 'w', encoding='utf-8') as f:
+            json.dump(out, f, ensure_ascii=False, indent=1)
+    print(f'[*] Wrote {len(out)} apps to dist/index.json, apps/index.json, and index.json')
 
 
 def main():
@@ -334,22 +337,28 @@ def main():
         trailer = meta_trailer(name, source_text(sources))
         web = web_section(name)
         data = compile_sources(sources, name) + web + trailer
-        target_file = os.path.join(APPS_DIR, f'{name}.msbc')
-        with open(target_file, 'wb') as f:
-            f.write(data)
+
+        # Write MSBC binary to dist/, apps/, and apps/<name>/
+        for msbc_dest in [
+            os.path.join(APPS_DIR, f'{name}.msbc'),
+            os.path.join(ROOT, 'apps', f'{name}.msbc'),
+            os.path.join(ROOT, 'apps', name, f'{name}.msbc'),
+        ]:
+            with open(msbc_dest, 'wb') as f:
+                f.write(data)
+
         if header:
             write_header(header, data, name)
 
         # Generate standalone all-in-one Scheme source file
         allinone_text = generate_allinone_scm(name, sources)
-        dist_allinone = os.path.join(APPS_DIR, f'{name}.allinone.scm')
-        with open(dist_allinone, 'w', encoding='utf-8') as f:
-            f.write(allinone_text)
-
-        # Also store in app directory
-        app_allinone = os.path.join(ROOT, 'apps', name, f'{name}.allinone.scm')
-        with open(app_allinone, 'w', encoding='utf-8') as f:
-            f.write(allinone_text)
+        for scm_dest in [
+            os.path.join(APPS_DIR, f'{name}.allinone.scm'),
+            os.path.join(ROOT, 'apps', f'{name}.allinone.scm'),
+            os.path.join(ROOT, 'apps', name, f'{name}.allinone.scm'),
+        ]:
+            with open(scm_dest, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(allinone_text)
 
         print(f"  [OK] {name}: {len(data)} bytes -> {name}.msbc & {name}.allinone.scm ({len(allinone_text)} chars)")
 

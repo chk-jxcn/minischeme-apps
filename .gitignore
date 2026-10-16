@@ -1,13 +1,12 @@
-# Python bytecode and build artifacts
+# Python bytecode and temporary build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
 build/
-dist/
+dist/*.zip
 tools/*.exe
+tools/compile_to_hex
 tools/minischeme/
-*.msbc
-*.fasl
 
 # Editor and temporary files
 .vscode/
