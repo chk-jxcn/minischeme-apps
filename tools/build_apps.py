@@ -282,10 +282,29 @@ def write_header(path, data, name):
     for i in range(0, len(data), 16):
         lines.append('    ' + ', '.join(f'0x{b:02X}' for b in data[i:i + 16]) + ',')
     lines += ['};', '', f'#endif /* {sym.upper()}_H */\n']
-    target = os.path.join(ROOT, path)
-    os.makedirs(os.path.dirname(target), exist_ok=True)
-    with open(target, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
+    content = '\n'.join(lines)
+
+    # Target destinations to ensure embedded apps stay synchronized
+    targets = [os.path.join(ROOT, path)]
+
+    # Automatically sync to minischeme-esp32 embedded firmware main directory
+    esp32_dir = os.path.join(ROOT, '..', 'minischeme-esp32', 'main')
+    if os.path.isdir(esp32_dir):
+        targets.append(os.path.join(esp32_dir, base))
+
+    # Automatically sync to core minischeme examples
+    for candidate_dir in [
+        os.path.join(ROOT, '..', '..', 'minischeme', 'examples'),
+        os.path.join(ROOT, '..', '..', 'minischeme-gemini', 'examples'),
+    ]:
+        if os.path.isdir(candidate_dir):
+            targets.append(os.path.join(candidate_dir, base))
+
+    for target in targets:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"    [+] Synced embedded header: {os.path.relpath(target, ROOT)}")
 
 
 def write_index():
@@ -363,6 +382,20 @@ def main():
         print(f"  [OK] {name}: {len(data)} bytes -> {name}.msbc & {name}.allinone.scm ({len(allinone_text)} chars)")
 
     write_index()
+
+    # Auto-sync compiled apps and allinone sources to minischeme-webrepl
+    webrepl_apps = os.path.join(ROOT, '..', 'minischeme-webrepl', 'apps')
+    if os.path.isdir(webrepl_apps):
+        import shutil
+        for fn in os.listdir(APPS_DIR):
+            if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn == 'index.json':
+                shutil.copy2(os.path.join(APPS_DIR, fn), os.path.join(webrepl_apps, fn))
+        lib_src = os.path.join(ROOT, 'apps', 'lib')
+        lib_dst = os.path.join(webrepl_apps, 'lib')
+        if os.path.isdir(lib_src):
+            shutil.copytree(lib_src, lib_dst, dirs_exist_ok=True)
+        print(f"[*] Auto-synced compiled apps to {os.path.relpath(webrepl_apps, ROOT)}")
+
     print("[*] Build completed successfully!")
 
 
