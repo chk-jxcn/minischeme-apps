@@ -11,7 +11,7 @@
   "file": "album.msbc",
   "size": 56300,
   "scm": "album.allinone.scm",
-  "hash": "211e41be"
+  "hash": "c97f4c7f"
  },
  {
   "id": "calendar",
@@ -67,7 +67,7 @@
   "file": "memo.msbc",
   "size": 50935,
   "scm": "memo.allinone.scm",
-  "hash": "99bf2d29"
+  "hash": "cba9908e"
  },
  {
   "id": "news",
@@ -95,7 +95,7 @@
   "file": "notifier.msbc",
   "size": 52926,
   "scm": "notifier.allinone.scm",
-  "hash": "4724262e"
+  "hash": "00d22b20"
  },
  {
   "id": "pcmonitor",
@@ -163,9 +163,9 @@
   "kind": "app",
   "web": false,
   "file": "weather.msbc",
-  "size": 51042,
+  "size": 53231,
   "scm": "weather.allinone.scm",
-  "hash": "7269d316"
+  "hash": "6bed77df"
  },
  {
   "id": "wxpusher",
@@ -179,6 +179,6 @@
   "file": "wxpusher.msbc",
   "size": 56260,
   "scm": "wxpusher.allinone.scm",
-  "hash": "54122328"
+  "hash": "be6a9f15"
  }
 ]
