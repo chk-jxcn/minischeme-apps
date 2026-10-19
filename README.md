@@ -34,9 +34,16 @@ converter_url = http://converter.local:8087
 
 ## Building Applications to MSBC Bytecode
 ```bash
-python tools/build_apps.py
+python tools/build_apps.py [--system-fonts] [--sync] [app ...]
 ```
 This compiles each Scheme app into an MSBC binary package with embedded metadata and font ROM dependencies.
+All outputs stay inside this repository: `dist/` (images, all-in-one sources, `index.json`,
+`app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
+
+`--sync` (off by default) additionally copies the results into sibling checkouts when they exist:
+`../minischeme-esp32/main/app_*_msbc.h`, `../../minischeme/examples/app_*_msbc.h`,
+`../minischeme-webrepl/apps/` and `../minischeme-proxy/apps/`. Use it only when you mean to update
+those repositories as well.
 
 ## License
 MIT License

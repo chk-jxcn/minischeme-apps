@@ -2,7 +2,14 @@
 """Compiles the bundled MiniScheme apps to MSBC bytecode images and metadata.
 
 Usage:
-    python tools/build_apps.py [--system-fonts] [app1 app2 ...]
+    python tools/build_apps.py [--system-fonts] [--sync] [app1 app2 ...]
+
+Everything is written inside this repository (dist/, apps/, index.json).
+--sync also copies the results into sibling checkouts, when they exist:
+    ../minischeme-esp32/main/app_*_msbc.h      (embedded calendar and settings)
+    ../../minischeme/examples/app_*_msbc.h     (core examples)
+    ../minischeme-webrepl/apps, ../minischeme-proxy/apps  (images, sources, index)
+Without --sync no file outside this repository is touched.
 """
 
 import gzip
@@ -199,7 +206,8 @@ def ensure_compiler():
 
 
 USE_FONT_RE = re.compile(r'\((?:font-use|use-font)\s+([0-9]+)\s+"([^"]+)"(?:\s+([0-9]+))?(?:\s+\'(embed|system))?\s*\)')
-SYSTEM_FONTS = False
+SYSTEM_FONTS = False  # --system-fonts
+SYNC = False          # --sync: also copy the results into sibling repositories
 
 
 def embed_fonts(name, text):
@@ -284,27 +292,21 @@ def write_header(path, data, name):
     lines += ['};', '', f'#endif /* {sym.upper()}_H */\n']
     content = '\n'.join(lines)
 
-    # Target destinations to ensure embedded apps stay synchronized
     targets = [os.path.join(ROOT, path)]
-
-    # Automatically sync to minischeme-esp32 embedded firmware main directory
-    esp32_dir = os.path.join(ROOT, '..', 'minischeme-esp32', 'main')
-    if os.path.isdir(esp32_dir):
-        targets.append(os.path.join(esp32_dir, base))
-
-    # Automatically sync to core minischeme examples
-    for candidate_dir in [
-        os.path.join(ROOT, '..', '..', 'minischeme', 'examples'),
-        os.path.join(ROOT, '..', '..', 'minischeme-gemini', 'examples'),
-    ]:
-        if os.path.isdir(candidate_dir):
-            targets.append(os.path.join(candidate_dir, base))
+    if SYNC:   # --sync: the firmware's and the core examples' embedded copies
+        for candidate_dir in [
+            os.path.join(ROOT, '..', 'minischeme-esp32', 'main'),
+            os.path.join(ROOT, '..', '..', 'minischeme', 'examples'),
+            os.path.join(ROOT, '..', '..', 'minischeme-gemini', 'examples'),
+        ]:
+            if os.path.isdir(candidate_dir):
+                targets.append(os.path.join(candidate_dir, base))
 
     for target in targets:
         os.makedirs(os.path.dirname(target), exist_ok=True)
         with open(target, 'w', encoding='utf-8') as f:
             f.write(content)
-        print(f"    [+] Synced embedded header: {os.path.relpath(target, ROOT)}")
+        print(f"    [+] Wrote embedded header: {os.path.relpath(target, ROOT)}")
 
 
 def write_index():
@@ -342,9 +344,10 @@ def write_index():
 
 
 def main():
-    global SYSTEM_FONTS
+    global SYSTEM_FONTS, SYNC
     args = sys.argv[1:]
     SYSTEM_FONTS = '--system-fonts' in args
+    SYNC = '--sync' in args
     names = [a for a in args if not a.startswith('--')] or list(APPS)
 
     ensure_compiler()
@@ -383,8 +386,10 @@ def main():
 
     write_index()
 
-    # Auto-sync compiled apps and allinone sources to minischeme-webrepl and minischeme-proxy
-    for dest_repo in ['minischeme-webrepl', 'minischeme-proxy']:
+    if not SYNC:
+        print("[*] Cross-repository sync skipped (pass --sync to copy into sibling checkouts)")
+    # --sync: the compiled apps and all-in-one sources into minischeme-webrepl and minischeme-proxy
+    for dest_repo in (['minischeme-webrepl', 'minischeme-proxy'] if SYNC else []):
         dest_apps = os.path.join(ROOT, '..', dest_repo, 'apps')
         if os.path.isdir(dest_apps):
             import shutil
@@ -395,7 +400,7 @@ def main():
             lib_dst = os.path.join(dest_apps, 'lib')
             if os.path.isdir(lib_src):
                 shutil.copytree(lib_src, lib_dst, dirs_exist_ok=True)
-            print(f"[*] Auto-synced compiled apps to {os.path.relpath(dest_apps, ROOT)}")
+            print(f"[*] Synced compiled apps to {os.path.relpath(dest_apps, ROOT)}")
 
     print("[*] Build completed successfully!")
 
