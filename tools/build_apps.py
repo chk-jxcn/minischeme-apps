@@ -383,18 +383,19 @@ def main():
 
     write_index()
 
-    # Auto-sync compiled apps and allinone sources to minischeme-webrepl
-    webrepl_apps = os.path.join(ROOT, '..', 'minischeme-webrepl', 'apps')
-    if os.path.isdir(webrepl_apps):
-        import shutil
-        for fn in os.listdir(APPS_DIR):
-            if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn == 'index.json':
-                shutil.copy2(os.path.join(APPS_DIR, fn), os.path.join(webrepl_apps, fn))
-        lib_src = os.path.join(ROOT, 'apps', 'lib')
-        lib_dst = os.path.join(webrepl_apps, 'lib')
-        if os.path.isdir(lib_src):
-            shutil.copytree(lib_src, lib_dst, dirs_exist_ok=True)
-        print(f"[*] Auto-synced compiled apps to {os.path.relpath(webrepl_apps, ROOT)}")
+    # Auto-sync compiled apps and allinone sources to minischeme-webrepl and minischeme-proxy
+    for dest_repo in ['minischeme-webrepl', 'minischeme-proxy']:
+        dest_apps = os.path.join(ROOT, '..', dest_repo, 'apps')
+        if os.path.isdir(dest_apps):
+            import shutil
+            for fn in os.listdir(APPS_DIR):
+                if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn == 'index.json':
+                    shutil.copy2(os.path.join(APPS_DIR, fn), os.path.join(dest_apps, fn))
+            lib_src = os.path.join(ROOT, 'apps', 'lib')
+            lib_dst = os.path.join(dest_apps, 'lib')
+            if os.path.isdir(lib_src):
+                shutil.copytree(lib_src, lib_dst, dirs_exist_ok=True)
+            print(f"[*] Auto-synced compiled apps to {os.path.relpath(dest_apps, ROOT)}")
 
     print("[*] Build completed successfully!")
 
