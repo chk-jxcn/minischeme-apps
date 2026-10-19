@@ -78,6 +78,7 @@ jobs:
       with:
         name: minischeme-msbc-binaries
         path: dist/
+        retention-days: 1   # storage quota: the Release keeps the files
 
     - name: Publish Release Assets (Source & Binaries Separated)
       if: startsWith(github.ref, 'refs/tags/v')   # releases only from a pushed version tag
