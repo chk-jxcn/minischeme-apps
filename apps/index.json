@@ -11,7 +11,7 @@
   "file": "album.msbc",
   "size": 56545,
   "scm": "album.allinone.scm",
-  "hash": "9b28ccd5"
+  "hash": "af8a6f7c"
  },
  {
   "id": "calendar",
@@ -67,7 +67,7 @@
   "file": "memo.msbc",
   "size": 51180,
   "scm": "memo.allinone.scm",
-  "hash": "8cfef42d"
+  "hash": "cf435fd2"
  },
  {
   "id": "news",
@@ -95,7 +95,7 @@
   "file": "notifier.msbc",
   "size": 53171,
   "scm": "notifier.allinone.scm",
-  "hash": "e1731f85"
+  "hash": "dd167fcb"
  },
  {
   "id": "pcmonitor",
@@ -179,6 +179,6 @@
   "file": "wxpusher.msbc",
   "size": 56505,
   "scm": "wxpusher.allinone.scm",
-  "hash": "eb817409"
+  "hash": "d3a32624"
  }
 ]
