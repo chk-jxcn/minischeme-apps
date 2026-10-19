@@ -34,10 +34,10 @@ pages = 1
 storage_kb = 64
 
 [config]
-# External service endpoints (provided in all apps)
-proxy_url = http://proxy.local:8087
-converter_url = http://converter.local:8087
-# Custom app configuration keys
+; service endpoints: empty = the system config.ini values ([app] proxy / https_proxy)
+proxy_url =
+converter_url =
+; custom app configuration keys
 refresh_interval = 60
 ```
 

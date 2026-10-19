@@ -25,12 +25,19 @@ This repository hosts official applications, shared component libraries, and bui
 | `settings` | 系统设置 (Settings) | Device configuration, WiFi management, and app launcher |
 
 ## App Configuration
-Every application includes proxy and protocol converter configuration options in its `meta.ini`:
+An app's `meta.ini` `[config]` holds the defaults of its settings (the device copies them into the
+app's own `config.ini` on first start). A key left **empty** takes the system `config.ini` value,
+so the service addresses and the page carousel are empty by default and follow the system settings:
 ```ini
 [config]
-proxy_url = http://proxy.local:8087
-converter_url = http://converter.local:8087
+proxy_url =          ; empty: config.ini [app] proxy
+converter_url =      ; empty: config.ini [app] https_proxy
+carousel =           ; empty: config.ini [app] carousel
+carousel_seconds =   ; empty: config.ini [app] carousel_seconds
 ```
+Defaults that look like credentials (keys named like token/key/password, long tokens, private
+addresses) are packaged empty by the build. Market data shown by the apps comes from the proxy
+and is real: when a source fails the app keeps its last data (no demo values).
 
 ## Building Applications to MSBC Bytecode
 ```bash
@@ -40,10 +47,13 @@ This compiles each Scheme app into an MSBC binary package with embedded metadata
 All outputs stay inside this repository: `dist/` (images, all-in-one sources, `index.json`,
 `app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
 
-`--sync` (off by default) additionally copies the results into sibling checkouts when they exist:
-`../minischeme-esp32/main/app_*_msbc.h`, `../../minischeme/examples/app_*_msbc.h`,
-`../minischeme-webrepl/apps/` and `../minischeme-proxy/apps/`. Use it only when you mean to update
-those repositories as well.
+The build checks each app's API requirement: it fails when the code needs a newer API than
+`meta.ini` declares or than the firmware provides, or uses an extension not declared there.
+
+`--sync` (off by default) additionally copies the results into the sibling checkouts when they exist:
+`../minischeme-esp32/main/app_*_msbc.h` (embedded calendar and settings), and the images, all-in-one
+sources, `index.json` and app sources into `../minischeme-webrepl/apps/` and `../minischeme-proxy/apps/`.
+Use it when those repositories are to be released with the new apps.
 
 ## License
 MIT License
