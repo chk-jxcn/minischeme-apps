@@ -328,7 +328,7 @@ def write_header(path, data, name):
 
     for target in targets:
         os.makedirs(os.path.dirname(target), exist_ok=True)
-        with open(target, 'w', encoding='utf-8') as f:
+        with open(target, 'w', encoding='utf-8', newline='\n') as f:   # LF on every host
             f.write(content)
         print(f"    [+] Wrote embedded header: {os.path.relpath(target, ROOT)}")
 
@@ -363,7 +363,7 @@ def write_index():
     for idx_path in [os.path.join(folder, 'index.json'),
                      os.path.join(ROOT, 'apps', 'index.json'),
                      os.path.join(ROOT, 'index.json')]:
-        with open(idx_path, 'w', encoding='utf-8') as f:
+        with open(idx_path, 'w', encoding='utf-8', newline='\n') as f:   # LF on every host
             json.dump(out, f, ensure_ascii=False, indent=1)
     print(f'[*] Wrote {len(out)} apps to dist/index.json, apps/index.json, and index.json')
 
