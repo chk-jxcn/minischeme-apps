@@ -7,8 +7,8 @@ Usage:
 Everything is written inside this repository (dist/, apps/, index.json).
 --sync also copies the results into sibling checkouts, when they exist:
     ../minischeme-esp32/main/app_*_msbc.h      (embedded calendar and settings)
-    ../../minischeme/examples/app_*_msbc.h     (core examples)
     ../minischeme-webrepl/apps, ../minischeme-proxy/apps  (images, sources, index)
+(The original single repository is retired: nothing is written there.)
 Without --sync no file outside this repository is touched.
 """
 
@@ -54,6 +54,7 @@ DEFINE_RE = re.compile(r'\((?:define|define-macro|define-syntax)\s+\(?\s*([^\s()
 
 
 def scheme_code(text):
+    """text without comments and string literals (their words are no calls)."""
     out, i, n = [], 0, len(text)
     while i < n:
         c = text[i]
@@ -63,10 +64,13 @@ def scheme_code(text):
         elif c == '"':
             i += 1
             while i < n and text[i] != '"':
-                if text[i] == '\\':
-                    i += 1
-                i += 1
+                i += 2 if text[i] == '\\' else 1
             i += 1
+            out.append(' ')
+        elif text.startswith('#\\', i):      # character literals: #\( #\space
+            i += 3
+            while i < n and not text[i].isspace() and text[i] not in '()':
+                i += 1
         else:
             out.append(c)
             i += 1
@@ -74,19 +78,19 @@ def scheme_code(text):
 
 
 def api_needs(source_text):
-    try:
-        import api as A
-        from api.spec import ALL
-        code = scheme_code(source_text)
-        defined = set(DEFINE_RE.findall(code))
-        table = {e['name']: e for e in ALL}
-        used = {t: table[t] for t in set(TOKEN_RE.findall(code)) if t in table and t not in defined}
-        need = max([A.version_tuple(e['since']) for e in used.values() if not e['ext']] + [(1, 0, 0)])
-        exts = sorted({e['ext'] for e in used.values() if e['ext']})
-        reserved = sorted(n for n, e in used.items() if e['status'] == A.RESERVED)
-        return f'{need[0]}.{need[1]}', exts, used, reserved
-    except Exception as e:
-        return '1.0', [], {}, []
+    """(version 'M.m', [extension ids], {name: entry} used, [reserved names used])
+    of the API procedures the app calls (its own definitions excluded).
+    Errors propagate: a build must never guess an app's API requirement."""
+    import api as A
+    from api.spec import ALL
+    code = scheme_code(source_text)
+    defined = set(DEFINE_RE.findall(code))
+    table = {e['name']: e for e in ALL}
+    used = {t: table[t] for t in set(TOKEN_RE.findall(code)) if t in table and t not in defined}
+    need = max([A.version_tuple(e['since']) for e in used.values() if not e['ext']] + [(1, 0, 0)])
+    exts = sorted({e['ext'] for e in used.values() if e['ext']})
+    reserved = sorted(n for n, e in used.items() if e['status'] == A.RESERVED)
+    return f'{need[0]}.{need[1]}', exts, used, reserved
 
 
 SECRET_KEY_RE = re.compile(r'(?i)(key|token|secret|passw|pwd|credential|auth)')
@@ -95,7 +99,10 @@ SECRET_VALUE_RE = re.compile(
     r'|\b[0-9a-fA-F]{24,}\b|\b[A-Za-z0-9_\-]{32,}\b')
 
 
-def sanitize_config(app_id, meta):
+def sanitize_config(app_id, meta, quiet=False):
+    """meta with every [config] default that looks sensitive (a key named like
+    a credential, a private network address, a long token) packaged empty:
+    the placeholder the board's settings page shows for the user to fill."""
     out, section = [], ''
     for line in meta.split('\n'):
         m = re.match(r'\s*\[([^\]]+)\]', line)
@@ -105,23 +112,42 @@ def sanitize_config(app_id, meta):
         if section == 'config' and kv and kv.group(3):
             key, value, comment = kv.group(2), kv.group(3), kv.group(4) or ''
             if SECRET_KEY_RE.search(key) or SECRET_VALUE_RE.search(value):
-                print(f'{app_id}: warning: [config] {key} has sensitive default: packaged empty')
+                if not quiet:
+                    print(f'{app_id}: warning: [config] {key} has a sensitive-looking default: packaged empty')
                 line = f'{kv.group(1)}{key} = ' + (comment if comment else '')
         out.append(line)
     return '\n'.join(out)
 
 
 def app_meta(app_id, source_text):
+    """apps/<id>/meta.ini with [app] api (and extensions) set to what the code
+    needs: added when missing; a build error when declared lower, when newer
+    than this firmware API, or when a used extension is not declared."""
+    import api as A
     path = os.path.join(ROOT, 'apps', app_id, 'meta.ini')
     if not os.path.exists(path):
         return None
     meta = sanitize_config(app_id, open(path, 'rb').read().replace(b'\r\n', b'\n').decode('utf-8'))
     need, exts, used, reserved = api_needs(source_text)
+    for n in reserved:
+        print(f"{app_id}: warning: {n} is a reserved API (not provided yet): guard it with (api-has? '{n})")
     declared = re.search(r'(?m)^api\s*=\s*([0-9.]+)', meta)
+    if declared and A.version_tuple(declared.group(1)) < A.version_tuple(need):
+        sys.exit(f'{app_id}: meta.ini declares api = {declared.group(1)} but the code needs {need}')
+    if A.version_tuple(need) > A.version_tuple(A.API_VERSION):
+        sys.exit(f"{app_id}: needs API {need}, newer than this firmware's {A.API_VERSION}")
     add = []
     if not declared:
         add.append(f'api = {need}')
-    if add:
+    declared_ext = re.search(r'(?m)^extensions\s*=\s*([^;#\n]*)', meta)
+    have = {x.strip().split(' ')[0] for x in declared_ext.group(1).split(',')} if declared_ext else set()
+    missing = [x for x in exts if x not in have]
+    if missing and declared_ext:
+        sys.exit(f'{app_id}: the code uses the {", ".join(missing)} extension API, not in meta.ini extensions')
+    if missing:
+        add.append('extensions = ' + ', '.join(f'{x} {A.EXTENSIONS[x][0].rsplit(".", 1)[0]}' for x in missing))
+    print(f'{app_id}: API {need}' + (f' + {", ".join(exts)}' if exts else '') + f' ({len(used)} procedures)')
+    if add:   # right after the [app] keys
         m = re.search(r'(?ms)^\[app\]\n.*?(?=^\s*$|^\[)', meta)
         at = m.end() if m else len(meta)
         meta = meta[:at] + ''.join(line + '\n' for line in add) + meta[at:]
@@ -293,11 +319,9 @@ def write_header(path, data, name):
     content = '\n'.join(lines)
 
     targets = [os.path.join(ROOT, path)]
-    if SYNC:   # --sync: the firmware's and the core examples' embedded copies
+    if SYNC:   # --sync: the firmware's embedded copy
         for candidate_dir in [
             os.path.join(ROOT, '..', 'minischeme-esp32', 'main'),
-            os.path.join(ROOT, '..', '..', 'minischeme', 'examples'),
-            os.path.join(ROOT, '..', '..', 'minischeme-gemini', 'examples'),
         ]:
             if os.path.isdir(candidate_dir):
                 targets.append(os.path.join(candidate_dir, base))
@@ -331,6 +355,7 @@ def write_index():
                     'description': info.get('description', ''), 'version': info.get('version', ''),
                     'api': info.get('api', '1.0'),
                     'extensions': info.get('extensions', ''), 'kind': info.get('kind', 'app') or 'app',
+                    'pages': int(info['pages']) if info.get('pages', '').isdigit() else 1,
                     'web': read_web(data) is not None,
                     'file': name, 'size': len(data),
                     'scm': f'{app_id}.allinone.scm',
@@ -396,10 +421,12 @@ def main():
             for fn in os.listdir(APPS_DIR):
                 if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn == 'index.json':
                     shutil.copy2(os.path.join(APPS_DIR, fn), os.path.join(dest_apps, fn))
-            lib_src = os.path.join(ROOT, 'apps', 'lib')
-            lib_dst = os.path.join(dest_apps, 'lib')
-            if os.path.isdir(lib_src):
-                shutil.copytree(lib_src, lib_dst, dirs_exist_ok=True)
+            # the sources: the library and each app's folder (code, meta.ini, web page)
+            for sub in sorted(os.listdir(os.path.join(ROOT, 'apps'))):
+                src_dir = os.path.join(ROOT, 'apps', sub)
+                if os.path.isdir(src_dir):
+                    shutil.copytree(src_dir, os.path.join(dest_apps, sub), dirs_exist_ok=True,
+                                    ignore=shutil.ignore_patterns('*.msbc', '*.allinone.scm', '__pycache__'))
             print(f"[*] Synced compiled apps to {os.path.relpath(dest_apps, ROOT)}")
 
     print("[*] Build completed successfully!")
