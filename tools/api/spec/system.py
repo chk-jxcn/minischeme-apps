@@ -427,8 +427,8 @@ APIS = [
     ),
     # ---- config ------------------------------------------------------------
     api('config-get', 'config',
-        sig='(config-get key)',
-        desc="Value of a key in the running app's own config.ini (its folder), else in /spiffs/config.ini, as a string; #f when neither has it.",
+        sig='(config-get key [app-id])',
+        desc="Value of a key in the running app's own config.ini (its folder), else in /spiffs/config.ini, as a string; #f when neither has it. app-id: a member of the running combined app.",
         returns='A string (trimmed, comment removed, at most 159 bytes) or #f. The key is matched without case '
                 'in any section; the first match wins. An error when key is not a string.',
         example='''
@@ -440,7 +440,22 @@ APIS = [
         notes="An app's defaults ([config] of its metadata) are written to its config.ini when it first runs, so "
               'config-get finds them there; the settings web page edits the same file. An app gets no secrets of '
               'config.ini: wifi_* keys, boot_app and keys containing password, passwd, secret or token answer #f '
-              '(the system settings and the REPL get them).',
+              '(the system settings and the REPL get them). Since 1.6.0 a combined app (meta [combo] members = '
+              'a, b) passes a member\'s id to read that app\'s own config.ini (apps/<id>/, else user/<id>/); '
+              'another id is an error. Firmware before 1.6.0 ignores app-id.',
+    ),
+    api('app-has-config?', 'config',
+        sig='(app-has-config? app-id)',
+        desc="Whether a member of the running combined app ([combo] members) has its own config.ini.",
+        returns='#t or #f. An error when app-id is not a member of the running combined app.',
+        example='''
+(if (app-has-config? "weather") (config-get "city" "weather") "Beijing")
+''',
+        where=DEVICE,
+        since='1.6.0',
+        notes='A member that never ran on its own and was never set up has no config.ini: the combined app then '
+              'uses the defaults of that member\'s metadata. Check it with (defined? \'app-has-config?) on older '
+              'firmware.',
     ),
     api('config-set!', 'config',
         sig='(config-set! section key value)',

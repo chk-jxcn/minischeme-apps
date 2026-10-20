@@ -19,7 +19,7 @@ Hardware-specific procedures are extension APIs (ext='esp32'): versioned on
 their own, present only on devices that have them (EXTENSIONS below).
 """
 
-API_VERSION = '1.5.0'
+API_VERSION = '1.6.0'
 
 # Extension APIs and their versions
 EXTENSIONS = {
