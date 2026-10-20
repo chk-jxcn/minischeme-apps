@@ -1068,11 +1068,12 @@
          (page-error (and app-error (or (eq? app-error APP-NO-PROXY) (equal? app-error-url url)) app-error))
          ;; what the fetch waits for now (firmware 1.0.57+): it replaces an old error
          (step (app-status 'step))
-         (busy (memq step '(clock register)))
+         (busy (memq step '(clock register wifi)))
          (failed (and (not busy) (or page-error (eq? state 'error))))
          (text (cond ((eq? step 'register)
                       (string-append "正在向 " (app-server-name (app-status 'step-server)) " 注册加密通道..."))
                      ((eq? step 'clock) "等待网络对时...")
+                     ((eq? step 'wifi) "等待 WiFi 连接...")      ; firmware 1.0.61+
                      (page-error (string-append "代理: " page-error))
                      ((eq? state 'error) (string-append "连接失败: " (app-status 'error)))
                      ((and app-loading mine) (if last (string-append last "，刷新中...") "加载中..."))
