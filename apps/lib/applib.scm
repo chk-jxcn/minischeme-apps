@@ -643,11 +643,6 @@
 
 (define (app-touch x y) (app-button))
 
-;; Mid press: an app opened from a combined app (app-switch) goes back to it
-(define (app-mid-press)
-  (if (and (defined? 'app-switched?) (app-switched?))
-      (app-switch #f)))
-
 (define (app-resume)
   (app-init-fonts!)
   (app-start-feed!)
