@@ -115,6 +115,7 @@
         (list "启动应用" (string-append "当前：" (app-name-of (boot-app-path))))
         (list "应用市场" "从市场安装新应用，更新已安装的应用")
         (list "设备信息" "网络、硬件、存储")
+        (list "屏幕类型" (string-append "当前 " (if (panel-ips?) "IPS（反色）" "TFT") "，长按切换"))
         (list "恢复出厂" "清空程序 ROM、应用配置、文件系统或字库")
         (list "退出设置" (string-append "重启并运行 " (app-name-of (boot-app-path))))))
 
@@ -444,8 +445,17 @@
         ((= sel 1) (set! apps (app-list)) (go 'apps))
         ((= sel 2) (open-market))
         ((= sel 3) (set! apps (app-list)) (go 'info-menu))
-        ((= sel 4) (go 'reset))
+        ((= sel 4) (toggle-panel!))
+        ((= sel 5) (go 'reset))
         (else (restart-soon "正在重启" (string-append "即将运行 " (app-name-of (boot-app-path)))))))
+
+;; [display] panel: an IPS screen needs the driver's display inversion, a TFT
+;; one not (default ips); config-set! saves it and the firmware applies it at once
+(define (panel-ips?) (let ((p (cfg "panel"))) (not (and p (string=? p "tft")))))
+
+(define (toggle-panel!)
+  (config-set! "display" "panel" (if (panel-ips?) "tft" "ips"))
+  (redraw))
 
 (define (choose-info-menu)
   (set! info-page sel)
@@ -533,7 +543,7 @@
         ((eq? screen 'market) (if (not market-auto) (back-to-menu 2)))
         ((eq? screen 'info-menu) (back-to-menu 3))
         ((eq? screen 'info) (set! sel info-page) (set! screen 'info-menu) (redraw))
-        ((eq? screen 'reset) (back-to-menu 4))
+        ((eq? screen 'reset) (back-to-menu 5))
         ((eq? screen 'confirm) (set! screen 'reset) (set! sel reset-sel) (redraw))   ; cancel
         ((eq? screen 'setup) (back-to-menu 0))
         ((and (eq? screen 'message) reset-failed) (set! reset-failed #f) (go 'reset))
