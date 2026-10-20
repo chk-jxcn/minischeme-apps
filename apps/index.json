@@ -130,9 +130,9 @@
   "pages": 4,
   "web": false,
   "file": "settings.msbc",
-  "size": 30904,
+  "size": 30508,
   "scm": "settings.allinone.scm",
-  "hash": "b39fd3d3"
+  "hash": "1c797ea1"
  },
  {
   "id": "stocks",
