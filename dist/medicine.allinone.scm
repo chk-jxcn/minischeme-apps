@@ -1399,7 +1399,8 @@
 (define LOG-KEEP 300)                   ; lines of log.txt kept
 (define MED-NAME-MAX 60)                ; bytes
 (define MED-UNIT-MAX 12)
-(define MED-PHOTO-TOP 32)               ; right under the title bar (HDR-H)
+(define MED-PHOTO-TOP 37)               ; 5 px under the title bar (HDR-H)
+(define MED-NOPHOTO-H 160)              ; the empty frame of a medicine without a photo
 (define MED-SHOW-SECONDS 8)             ; normal mode: seconds per medicine
 (define MED-DONE-SECONDS 3)
 (define MED-WAIT-SECONDS 20)            ; a scheduled start waits this long for the date
@@ -1810,17 +1811,28 @@
           (set! med-info-cache (cons (cons (med-id m) info) med-info-cache))
           info))))
 
-;; The photo right under the title bar, centered across, cut at bottom
+;; The photo under the title bar, centered across, cut at bottom
 (define (med-render-photo m bottom)
   (let ((info (med-photo-info m)) (cx (quotient (scr-w) 2)) (h (- bottom MED-PHOTO-TOP)))
     (if info
         (gui-image (quotient (- (scr-w) (car info)) 2) MED-PHOTO-TOP (med-photo-path m))
-        (let ((bh (min 160 h)))
+        (let ((bh (min MED-NOPHOTO-H h)))
           (if (> bh 40)
               (begin
                 (gui-round-rect 70 MED-PHOTO-TOP (- (scr-w) 140) bh 10 theme-card-border #f)
                 (txt-center cx (- (+ MED-PHOTO-TOP (quotient bh 2)) 8) "没有照片" theme-text-muted)))))
     (gui-rect 0 bottom (scr-w) (- (gui-height) bottom) theme-bg #t)))
+
+;; Where the text block (block px high) goes between the photo and bottom:
+;; (cut . y), the photo cut at cut, the block at y, centered in the space
+;; under the photo, or pushed up into the photo when the space is short
+(define (med-layout m block bottom)
+  (let* ((info (med-photo-info m))
+         (photo-end (+ MED-PHOTO-TOP (if info (cadr info) MED-NOPHOTO-H)))
+         (space (- bottom photo-end)))
+    (if (>= space (+ block 16))
+        (cons photo-end (+ photo-end (quotient (- space block) 2)))
+        (cons (- bottom block 16) (- bottom block 8)))))
 
 ;; The largest multiple up to s at which text (1 px wider: bold) fits the width
 (define (med-fit-scale s text)
@@ -1875,9 +1887,11 @@
                (k (med-scale "list_size"))
                (kn (med-fit-scale k (med-name m)))
                (ka (med-fit-scale k amount))
-               (amount-y (- (gui-height) FTR-H 8 (if nd (* 16 ka) 0)))
-               (name-y (- amount-y (if nd 8 0) (* 16 kn))))
-          (med-render-photo m (- name-y 10))
+               (block (+ (* 16 kn) (if nd (+ 8 (* 16 ka)) 0)))
+               (place (med-layout m block (- (gui-height) FTR-H)))
+               (name-y (cdr place))
+               (amount-y (+ name-y (* 16 kn) 8)))
+          (med-render-photo m (car place))
           (med-bold name-y (med-name m) theme-text-main kn)
           (if nd (med-bold amount-y amount theme-accent ka))
           (med-footer (next-text nd) (med-plan-text m d))))))
@@ -1890,13 +1904,14 @@
          (kn (med-fit-scale (med-scale "name_size") (med-name m)))
          (kq (med-fit-scale (med-scale "amount_size") amount))
          (bar-y (- (gui-height) 44))
-         (amount-y (- bar-y 10 (* 16 kq)))
-         (name-y (- amount-y 10 (* 16 kn))))
+         (place (med-layout m (+ (* 16 kn) 10 (* 16 kq)) bar-y))
+         (name-y (cdr place))
+         (amount-y (+ name-y (* 16 kn) 10)))
     (med-header (string-append "共 " (number->string med-due-total) " 个药  第 " (number->string (+ med-due-done 1)) " 个")
                 med-due-at
                 (if med-blink theme-warning theme-card-hdr)
                 (if med-blink theme-bg theme-warning))
-    (med-render-photo m (- name-y 10))
+    (med-render-photo m (car place))
     (med-bold name-y (med-name m) theme-text-main kn)
     (med-bold amount-y amount theme-accent kq)
     (gui-rect 0 bar-y (scr-w) 44 theme-accent-dark #t)
