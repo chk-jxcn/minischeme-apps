@@ -8,7 +8,7 @@
 ;;; id = medicine
 ;;; name = 吃药提醒
 ;;; description = 按设定的时间点自动弹出吃药提醒：显示药品照片、名称和数量，逐个按键确认后回到原来的应用；支持每天几次、隔日服药。在设备网页的应用选项卡设置时间和药品；不需要代理
-;;; version = 1
+;;; version = 2
 ;;; storage_kb = 512 ; the medicines' photos in the app's folder (instead of app_storage_kb)
 ;;; 
 ;;; [fields]
