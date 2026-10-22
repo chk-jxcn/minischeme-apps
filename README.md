@@ -19,6 +19,8 @@ This repository hosts official applications, shared component libraries, and bui
 | `notifier` | 消息中心 (Notifier) | Push notification receiver and history viewer |
 | `memo` | 便签备忘 (Memo) | Notes, to-do lists, and reminders |
 | `album` | 电子相册 (Album) | Bitmapped photo gallery display |
+| `tide` | 潮汐 (Tide) | Today's tide curve, height and highs/lows from the app proxy's /app/tide (Open-Meteo model), the built-in Haikou table offline |
+| `medicine` | 吃药提醒 (Medicine) | Medicine reminders started by the system at set times (schedule.ini): photo, name, quantity, a press per medicine, then back to the previous app; needs API 1.7 |
 | `pcmonitor` | 电脑监控 (PC Monitor) | CPU/GPU load, temperature, and RAM telemetry dashboard |
 | `usage` | AI 用量 (Usage) | LLM token usage and quota tracker |
 | `wxpusher` | 微信推送 (WxPusher) | WeChat notification bridge |
@@ -55,7 +57,7 @@ All outputs stay inside this repository: `dist/` (images, all-in-one sources, `i
 `app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
 
 The build checks each app's API requirement: it fails when the code needs a newer API than
-`meta.ini` declares or than the firmware provides (`tools/api`, now API 1.6.0), or uses an
+`meta.ini` declares or than the firmware provides (`tools/api`, now API 1.7.0), or uses an
 extension not declared there.
 
 A combined app (`apps/<id>/meta.ini` with `[combo] members = a, b`) is assembled from its

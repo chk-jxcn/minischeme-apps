@@ -342,13 +342,17 @@ APIS = [
     api('time-local', 'time',
         sig='(time-local)',
         desc='The local time: (year month day hour minute second weekday), or #f.',
-        returns='A list of 7 integers in the zone of time-set-zone!: month 1..12, day 1..31, hour 0..23, '
-                'weekday 0..6 with 0 = Sunday; #f while time-synced? is #f. Never fails.',
+        returns='A list of 7 integers in the device\'s time zone: month 1..12, day 1..31, hour 0..23, '
+                'weekday 0..6 with 0 = Sunday; #f while the clock is not synced. Never fails.',
         example='''
 (define now (time-local))   ; e.g. (2026 10 10 14 30 5 6)
 (if now (string-append (number->string (list-ref now 3)) ":" (number->string (list-ref now 4))))
 ''',
-        status=RESERVED,
+        where=DEVICE,
+        since='1.7.0',
+        notes='The wall time of the last app-tick (once a second), so it can lag the clock by up to a second. '
+              'Use it for the year, or to count days (an every-other-day plan). Check it with '
+              '(defined? \'time-local) on older firmware.',
     ),
     api('time-utc-offset', 'time',
         sig='(time-utc-offset)',
@@ -424,6 +428,37 @@ APIS = [
 (for-each (lambda (a) (display (list-ref a 2)) (newline)) (app-list))
 ''',
         where=DEVICE,
+    ),
+    api('app-scheduled', 'app',
+        sig='(app-scheduled)',
+        desc="The time this run is for, \"HH:MM\": a launch from the app's schedule.ini, or the time its app-schedule hook was called with; #f otherwise.",
+        returns='A string "HH:MM" or #f. Never fails.',
+        example='''
+(if (app-scheduled) (show-reminder) (show-normal))
+''',
+        where=DEVICE,
+        since='1.7.0',
+        notes='An app with schedule.ini in its folder ([schedule] times = 08:00, 12:30, 19:00) is started by the '
+              'system at those times (wall clock, once synced): the board restarts into it, and (app-scheduled) '
+              'tells it why it runs. When the app is already running at such a time it is not restarted: its '
+              'app-schedule hook, (define (app-schedule at) ...), is called with the time instead (no hook: '
+              'nothing happens). Several apps due at the same time run one after another. A scheduled launch '
+              'stays until it calls (app-return), or for return_after seconds when its schedule.ini sets it. '
+              'The app (or its web page, through /api/app/file?name=schedule.ini) writes schedule.ini itself.',
+    ),
+    api('app-return', 'app',
+        sig='(app-return)',
+        desc='A scheduled launch is done: the next app due at that time, else the boot app, starts after this call (#t); #f when there is nothing to return to.',
+        returns='#t when a restart follows (within a second; the app keeps running until then), #f when this '
+                'run is not a scheduled launch and no other launch waits. Clears (app-scheduled) then. Never fails.',
+        example='''
+(define (all-confirmed) (if (not (app-return)) (show-normal)))
+''',
+        where=DEVICE,
+        since='1.7.0',
+        notes='The boot app ([system] boot_app) is the app the board ran before the launch. An app that handled '
+              'its app-schedule hook while running as the boot app calls (app-return) too: other apps due at '
+              'the same time wait for it, then run (#t); with none waiting it stays (#f).',
     ),
     # ---- config ------------------------------------------------------------
     api('config-get', 'config',

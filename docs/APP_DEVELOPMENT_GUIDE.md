@@ -9,9 +9,11 @@ This guide provides complete instructions for AI agents and developers to build 
 When designing new apps, refer directly to the official API documentation maintained in the `minischeme-esp32` project:
 - **[Core API Overview](../../minischeme-esp32/docs/api/README.md)**: Entry point for the MiniScheme runtime and primitive library, versioning and the API history.
 - **[Application Library (applib.scm)](../../minischeme-esp32/docs/api/applib.md)**: The app framework: pages, the items model, settings, header, carousel, combined apps.
-- **[Full API Specification v1.6.0](../../minischeme-esp32/docs/api/v1.6.0.md)**: Exhaustive reference of every Scheme primitive (graphics, hardware, networking, JSON feed, math, storage).
+- **[Full API Specification v1.7.0](../../minischeme-esp32/docs/api/v1.7.0.md)**: Exhaustive reference of every Scheme primitive (graphics, hardware, networking, JSON feed, math, storage).
 
-The current device API is **1.6.0** (firmware 1.0.62+): 1.6.0 added `(config-get key app-id)` and
+The current device API is **1.7.0** (firmware 1.0.66+): 1.7.0 added scheduled launches (an app's
+`schedule.ini` lists times; `(app-scheduled)`, `(app-return)` and the `app-schedule` hook) and
+`(gui-text-scaled x y str color scale [font-id])` for large text; 1.6.0 added `(config-get key app-id)` and
 `(app-has-config? app-id)` for combined apps. `tools/build_apps.py` finds the API version an
 app's code needs and writes `api = ` into its meta.ini; the firmware refuses an app that needs
 a newer API than it has.

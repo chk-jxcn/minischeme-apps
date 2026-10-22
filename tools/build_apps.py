@@ -40,7 +40,8 @@ APPS = {
     'settings': (['apps/lib/gui.scm', 'apps/settings/settings.scm'], [], 'dist/app_settings_msbc.h'),
 }
 
-for _app in ('weather', 'news', 'stocks', 'usage', 'calendar', 'memo', 'futures', 'crypto', 'wxpusher', 'notifier', 'album'):
+for _app in ('weather', 'news', 'stocks', 'usage', 'calendar', 'memo', 'futures', 'crypto', 'wxpusher', 'notifier', 'album',
+             'tide', 'medicine'):
     if os.path.exists(os.path.join(ROOT, 'apps', _app, f'{_app}.scm')):
         _web = [APP_WEB_LIB] if os.path.exists(os.path.join(ROOT, 'apps', _app, 'web.html')) else []
         APPS[_app] = (APP_LIB + _web + [f'apps/{_app}/{_app}.scm'], [], None)

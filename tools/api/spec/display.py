@@ -204,6 +204,21 @@ APIS = [
 ''',
         notes=_RENDER,
     ),
+    api('gui-text-scaled', 'gui',
+        sig='(gui-text-scaled x y str color scale [font-id])',
+        desc='Draw UTF-8 text in a font (default the current one) with every dot scale x scale (2..8): large text without a large font.',
+        returns='Void. scale 1 or less draws as gui-text-styled, more than 8 as 8. An error when x, y, color or '
+                'scale is not an integer or str is not a string.',
+        example='''
+(gui-text-scaled 10 40 "阿莫西林" (gui-rgb 255 255 255) 2)   ; 16 px font -> 32 px
+(gui-text-scaled 10 40 'name 0 2)  ; => error: expected
+''',
+        since='1.7.0',
+        notes='The glyphs of the font chain (the system font, its fallbacks) are enlarged: a dot set (an '
+              'anti-aliased dot more than half covered) becomes a scale x scale square, so the edges are '
+              'blocky but no font file is needed. Lines (\\n) are (height + 2) x scale apart. Check it with '
+              '(defined? \'gui-text-scaled) on older firmware. ' + _RENDER,
+    ),
     api('gui-chart', 'gui',
         sig='(gui-chart x y w h ring start count lo hi color)',
         desc='Line chart of count values of the vector ring from index start (wrapping), scaled from lo..hi to the box.',
