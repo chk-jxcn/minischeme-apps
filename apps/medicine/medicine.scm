@@ -491,7 +491,7 @@
   (txt-fit 8 8 (- (scr-w) 24 (txt-w right)) title fg)
   (txt-right (- (scr-w) 8) 8 right right-fg))
 
-(define MED-RED (gui-rgb 200 36 36))     ; the confirm bar, the title bar's blink
+(define MED-PINK (gui-rgb 244 160 160))  ; the confirm bar: light red
 
 ;; "【已服1/共4种】   服药时间 08:00"
 (define (med-reminder-title)
@@ -584,15 +584,15 @@
          (name-y (cdr place))
          (amount-y (+ name-y (* 16 kn) 10)))
     (med-header-colors (med-reminder-title) app-time
-                       (if med-blink MED-RED theme-card-hdr)
-                       (if med-blink theme-text-main theme-warning)
-                       theme-text-main)
+                       (if med-blink theme-warning theme-card-hdr)
+                       (if med-blink theme-bg theme-warning)
+                       (if med-blink theme-bg theme-text-main))   ; white, dark on the yellow (white would not show)
     (med-render-photo m (car place))
     (med-bold name-y (med-name m) theme-text-main kn)
     (med-bold amount-y amount theme-accent kq)
     (med-info-line m bar-y)
-    (gui-rect 0 bar-y (scr-w) 44 MED-RED #t)
-    (txt-center cx (+ bar-y 14) "服药后按按钮确认" theme-text-main)))
+    (gui-rect 0 bar-y (scr-w) 44 MED-PINK #t)
+    (txt-center cx (+ bar-y 14) "服药后按背部按钮确认" theme-bg)))
 
 (define (med-render-done)
   (let ((cx (quotient (scr-w) 2)))

@@ -43,7 +43,7 @@
 
 <section id="banner" class="banner" style="display:none">
 <h2>正在提醒 <span id="bannerAt" class="tag warn"></span></h2>
-<div class="desc">设备上正在显示吃药提醒：按设备按键逐个确认。也可以在这里结束本次提醒（未确认的药记为“未服”）。</div>
+<div class="desc">设备上正在显示吃药提醒：按设备背部按钮逐个确认。也可以在这里结束本次提醒（未确认的药记为“未服”）。</div>
 <div class="actions"><button class="plain" onclick="stopRemind()">结束本次提醒</button></div>
 </section>
 
@@ -101,7 +101,7 @@
 <div class="pane" id="p-slots">
 <section>
 <h2>服药时间点 <button class="small" onclick="addSlot()">添加时间点</button></h2>
-<div class="desc">到了这些时间，设备会从任何应用切换到吃药提醒，按键逐个确认后回到原来的应用；断电重启后继续提醒，直到全部确认。每个时间点勾选要服的药并填服用量（可以是 0.5），也可以设成隔日服用。最多 6 个时间点。</div>
+<div class="desc">到了这些时间，设备会从任何应用切换到吃药提醒，按设备背部按钮逐个确认后回到原来的应用；断电重启后继续提醒，直到全部确认。每个时间点勾选要服的药并填服用量（可以是 0.5），也可以设成隔日服用。最多 6 个时间点。</div>
 <div id="slotList"></div>
 <div class="actions"><button onclick="saveSlots()">保存服药时间</button><button class="plain" onclick="load()">放弃修改</button></div>
 </section>
