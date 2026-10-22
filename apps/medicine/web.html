@@ -65,8 +65,8 @@
 <h2 id="formTitle">添加药品</h2>
 <div class="row">
 <div><label for="f_name">名称</label><input id="f_name" maxlength="20" placeholder="如 阿莫西林胶囊"></div>
-<div><label for="f_unit">单位</label><input id="f_unit" maxlength="6" list="units" placeholder="粒">
-<datalist id="units"><option value="粒"><option value="片"><option value="袋"><option value="包"><option value="支"><option value="毫升"><option value="滴"><option value="喷"></datalist></div>
+<div><label for="f_unit">单位（粒、片、颗、包…）</label><input id="f_unit" maxlength="6" list="units" placeholder="粒">
+<datalist id="units"><option value="粒"><option value="片"><option value="颗"><option value="袋"><option value="包"><option value="支"><option value="毫升"><option value="滴"><option value="喷"></datalist></div>
 </div>
 <label for="f_photo">照片（拍药盒或药片，可不选）</label>
 <input type="file" id="f_photo" accept="image/*" onchange="previewPhoto()">
