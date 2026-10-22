@@ -7,9 +7,14 @@ This guide provides complete instructions for AI agents and developers to build 
 ## 1. Quick Reference to Firmware API Documentation
 
 When designing new apps, refer directly to the official API documentation maintained in the `minischeme-esp32` project:
-- **[Core API Overview](../docs/api/README.md)**: Entry point for the MiniScheme runtime and primitive library.
-- **[Application Library (applib.scm)](../docs/api/applib.md)**: Standard GUI helpers, cards, status bars, and formatted data components.
-- **[Full API Specification v1.5.0](../docs/api/v1.5.0.md)**: Exhaustive reference of every Scheme primitive (graphics, hardware, networking, JSON feed, math, storage).
+- **[Core API Overview](../../minischeme-esp32/docs/api/README.md)**: Entry point for the MiniScheme runtime and primitive library, versioning and the API history.
+- **[Application Library (applib.scm)](../../minischeme-esp32/docs/api/applib.md)**: The app framework: pages, the items model, settings, header, carousel, combined apps.
+- **[Full API Specification v1.6.0](../../minischeme-esp32/docs/api/v1.6.0.md)**: Exhaustive reference of every Scheme primitive (graphics, hardware, networking, JSON feed, math, storage).
+
+The current device API is **1.6.0** (firmware 1.0.62+): 1.6.0 added `(config-get key app-id)` and
+`(app-has-config? app-id)` for combined apps. `tools/build_apps.py` finds the API version an
+app's code needs and writes `api = ` into its meta.ini; the firmware refuses an app that needs
+a newer API than it has.
 
 ---
 
@@ -29,8 +34,9 @@ apps/<app_id>/
 id = myapp
 name = 我的应用
 description = A sample application for MiniScheme
-version = 1.0.0
+version = 1
 pages = 1
+page_ids = front ; English page names, one per page: <app>.<id> in a combined app
 storage_kb = 64
 
 [config]
@@ -40,6 +46,15 @@ converter_url =
 ; custom app configuration keys
 refresh_interval = 60
 ```
+
+### 2.2 Combined apps (合集)
+
+An app whose meta.ini has `[combo] members = weather, calendar, ...` is assembled by the
+build from the members' code (`apps/lib/combo.scm`); its `entries` setting picks the pages
+(`calendar.month`, `weather.front`, `wxpusher.news[0]`). Give every app `page_ids` so its pages
+can be named, and keep an app's settings in its own `config.ini`: in a combined app each
+member reads its own file through `(config-get key app-id)`. See "Combined apps" in
+[applib.md](../../minischeme-esp32/docs/api/applib.md).
 
 ---
 
@@ -61,7 +76,7 @@ The MiniScheme device runtime calls global Scheme procedures defined by the app:
 ## 4. Best Practices for AI Agents
 
 1. **Memory Budget**:
-   - The total Scheme VM heap on ESP32 is typically **102 KB**, with a **4 KB Eden** young generation.
+   - The total Scheme VM heap on ESP32 is typically **101 KB** (firmware 1.0.64), with a **4 KB Eden** young generation.
    - Live objects must stay below **60 KB** (60% of heap) to avoid frequent full GC pauses.
    - Use `(json-feed-start url interval keys types)` instead of holding huge JSON responses in RAM.
 2. **Band Rendering Contract**:
