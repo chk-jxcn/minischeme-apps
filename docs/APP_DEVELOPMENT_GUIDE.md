@@ -73,7 +73,19 @@ The MiniScheme device runtime calls global Scheme procedures defined by the app:
 
 ---
 
-## 4. Best Practices for AI Agents
+## 4. Testing without a board
+
+`tools/sim.py` in minischeme-webrepl runs the WebREPL simulator (the firmware's C runtime in
+WASM, the local proxy) headless from the command line:
+
+```bash
+cd ../minischeme-webrepl
+python tools/sim.py --app ../minischeme-apps/apps/myapp.msbc --wait 5 --shot page1.png --press short --wait 2 --shot page2.png
+python tools/sim.py --app ../minischeme-apps/apps/myapp/myapp.allinone.scm --log    # source, compiled in the page
+python tools/sim.py --eval "(config-get \"proxy\")"
+```
+
+## 5. Best Practices for AI Agents
 
 1. **Memory Budget**:
    - The total Scheme VM heap on ESP32 is typically **101 KB** (firmware 1.0.64), with a **4 KB Eden** young generation.

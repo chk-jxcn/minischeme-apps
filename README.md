@@ -36,6 +36,12 @@ converter_url =      ; empty: config.ini [app] https_proxy
 carousel =           ; empty: config.ini [app] carousel
 carousel_seconds =   ; empty: config.ini [app] carousel_seconds
 ```
+An app's own server may have an app service password (`proxy_url_password`, edited on the
+configuration pages next to the address; apps cannot read it): with one, the device registers an
+encrypted channel there; without one it uses plain HTTP with the device id in the
+`X-MiniScheme-Device` header, or (`proxy_url_relay = 1`) goes through the system converter.
+See applib.md in minischeme-esp32.
+
 Defaults that look like credentials (keys named like token/key/password, long tokens, private
 addresses) are packaged empty by the build. Market data shown by the apps comes from the proxy
 and is real: when a source fails the app keeps its last data (no demo values).
