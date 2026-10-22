@@ -187,7 +187,7 @@ APIS = [
         desc='Alist of the system heap figures and the free stack of the firmware tasks; collects the VM heap first.',
         returns='An alist of integers: (free-heap . n) (min-free-heap . n) (largest-block . n) (vm-heap . n) '
                 '(vm-live . n) after a full VM collection, then (stack-free:<task> . bytes) for each running '
-                'task of main, httpd, jsonfeed, tiT, wifi, sys_evt, esp_timer, ipc0, ipc1, IDLE0, IDLE1, '
+                'task of main, httpd, jsonfeed, mirror_stream, market, tiT, wifi, sys_evt, esp_timer, ipc0, ipc1, IDLE0, IDLE1, '
                 'Tmr Svc (the stack high-water mark). Firmware only: the WASM simulator does not provide it.',
         example='''
 (define r (mem-report))
@@ -380,7 +380,7 @@ APIS = [
     api('app-rom-capacity', 'app',
         sig='(app-rom-capacity)',
         desc="Bytes of the approm flash partition that holds the app's Code ROM image (vm-rom-bytes is the image); 0 when there is none.",
-        returns='An integer: 262144 (the 256 KB approm partition) on the reference board, in the simulator and '
+        returns='An integer: 262144 (one 256 KB slot of the approm partition: 512 KB in two slots since firmware 1.0.71) on the reference board, in the simulator and '
                 'the PC REPL; 0 on a firmware whose partition table has no approm. Never fails.',
         example='''
 (app-rom-capacity) ; => 262144
