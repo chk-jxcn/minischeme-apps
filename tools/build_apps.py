@@ -260,8 +260,13 @@ def web_section(app_id):
     if APP_WEB_MARK in html:
         css_path = os.path.join(ROOT, 'apps', 'lib', 'appweb.css')
         js_path = os.path.join(ROOT, 'apps', 'lib', 'appweb.js')
-        css = open(css_path, encoding='utf-8').read() if os.path.exists(css_path) else ''
-        js = open(js_path, encoding='utf-8').read() if os.path.exists(js_path) else ''
+        css = js = ''
+        if os.path.exists(css_path):
+            with open(css_path, encoding='utf-8') as f:
+                css = f.read()
+        if os.path.exists(js_path):
+            with open(js_path, encoding='utf-8') as f:
+                js = f.read()
         html = html.replace(APP_WEB_MARK, f'<style>\n{css}</style>\n<script>\n{js}</script>')
     gz = gzip.compress(html.encode('utf-8'), compresslevel=9, mtime=0)
     return gz + len(gz).to_bytes(4, 'little') + fnv1a(gz).to_bytes(4, 'little') + b'MSWP'
