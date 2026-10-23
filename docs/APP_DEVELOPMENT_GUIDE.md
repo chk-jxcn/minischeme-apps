@@ -396,7 +396,11 @@ y   0 ┌───────────────────────�
 - Margins 10 px (content `x` 10..310). Two columns: `x = 10` and `x = 164`, width 146.
 - Text rows: 16 px glyphs, 20..28 px pitch (`LINE-H` = 20). A section label:
   `(section y "标签")`, content about 24 px below.
-- Lists: draw only what fits: stop when `y` passes `(body-bottom)`.
+- Lists: draw only what fits: stop when `y` passes `(body-bottom)`. Long text in list rows
+  (titles, names): `gui-text-wrap` into a fixed number of lines, not `txt-fit` / `txt-wrap`
+  (section 9: they may scroll). Keep every string inside the screen, the right margin
+  included: measure with `txt-w`, and give a column the width that is left after the picture
+  or number beside it.
 - Empty state: one muted line, e.g. `(txt 14 70 "暂无数据" theme-text-muted)`.
 - Charts: a `theme-card-hdr` filled rectangle, the chart on top (`line-chart`, `bar-chart`,
   `gui-chart`), axis labels `theme-text-muted`.
@@ -489,9 +493,37 @@ Rules:
 - Large text: `(gui-text-scaled x y str color scale font-id)` (API 1.7) scales any font by an
   integer factor; `F-BIG` at scale 2 gives 64 px digits.
 - Width: `(txt-w s)`. One line that may be too long: `(txt-fit x y w s color)` (marquee or
-  "…" as the user configured). A paragraph: `(txt-wrap x y w h s color)`.
-- Avoid rare symbols (`·`, emoji, `℃` in some faces): the face may lack them. Use spaces and
-  plain words (`"23 度"` or `"23°"` only after you saw it render on a board).
+  "…" as the user configured). A paragraph: `(txt-wrap x y w h s color)` (it scrolls when the
+  user configured `wrap_marquee`).
+- **Many long strings on one screen** (a list of titles): `txt-fit` and `txt-wrap` scroll
+  (marquee) by default, and every scrolling box redraws its rows several times a second: a
+  list of five scrolling titles allocates tens of KB of garbage per second (measure it, 16.4)
+  and is hard to read, because each row shows half a sentence at any moment. Draw them with
+  `(gui-text-wrap x y w h s color F-TEXT LINE-H)`: it wraps to as many lines as fit in `h` and
+  ends cut text with "…", without animation. Keep `txt-fit` for one headline.
+- **Which characters exist.** The system face is the font ROM's `simsun-16`: ASCII and
+  **GB2312** (simplified Chinese, the common symbols and full-width punctuation, kana, Greek
+  and Cyrillic). Anything else (emoji, traditional or rare characters, many symbols) is drawn
+  as a box. Avoid rare symbols in your own strings (`"23 度"`, or `"23°"` only after you saw it
+  render on a board).
+- **Text from the web** (titles, names, comments) is full of characters the face lacks. Clean
+  it **on the app server**, before it goes into the document:
+
+  ```python
+  def board_text(s: str) -> str:
+      """Only characters the board's font has (ASCII and GB2312); the others dropped."""
+      out = []
+      for ch in s:
+          if " " <= ch <= "~":
+              out.append(ch)
+              continue
+          try:
+              ch.encode("gb2312")
+              out.append(ch)
+          except UnicodeEncodeError:
+              out.append(" ")
+      return " ".join("".join(out).split())   # no runs of spaces
+  ```
 
 ---
 
@@ -689,6 +721,9 @@ picture from the web (a cover, an avatar, a map):
    only when complete; a failed one leaves the old file.
 
 - Downloads wait for the JSON feed's current request: keep the picture endpoint fast (cached).
+- The same endpoint can serve the app's web page (section 13): the browser loads
+  `<img src="PROXY/app/myapp/pic?id=7">` itself, without the device headers, so the endpoint
+  must not need them. The page learns PROXY from an `app-web` answer (`(app-proxy)`).
 - The simulator fetches through server.py: the picture endpoint must be in minischeme-webrepl's
   `proxy/` copy too (11.4 step 4). Test there before the board.
 
@@ -753,7 +788,18 @@ the first tab of its web UI, and the WebREPL shows it under "🌐 应用网页".
   `web-field-int`, `web-ok`, `web-error`, `web-json`. Calls run on the main loop between frames;
   the screen is redrawn after each call. Body ≤ 4 KB, answer ≤ 8 KB.
 - Calls work only while the app runs.
-- Test from the simulator: `--eval "(app-web \"get\" \"\")"`, or open the WebREPL page.
+- Test from the simulator: `--eval "(app-web \"get\" \"\")"` for the answers, and look at the
+  page itself: `--install` puts the image into the device's app folder (the web page exists
+  only for an installed app, not one started with `--app`), `--webshot` saves the page:
+
+  ```bash
+  python tools/sim.py --fresh --install ../minischeme-apps/apps/myapp.msbc --wait 8 \
+      --webshot web.png --shot screen.png
+  ```
+- Design the page as a real control panel, not only a mirror of the screen: what a user would
+  want to change or see in more detail (choices that select what the app shows, a longer list,
+  links) belongs here. A choice that changes what the board shows should take effect at once
+  (the call updates the app's state and settings, the screen redraws), not only after a restart.
 
 See the template (`docs/app-template/hello/web.html`) and the memo and medicine apps.
 
@@ -770,8 +816,11 @@ proxy built in. It renders in bands like the board, runs the JSON feed, fonts an
 cd minischeme-webrepl && python server.py        # http://127.0.0.1:8087
 ```
 
-"📦 App 管理": install an app from the built list, "设为启动并重启". The "KEY 18" button gives
-short/long presses; a click on the screen is a touch. The REPL evaluates Scheme in the device.
+"📦 App 管理": install an app from the list, "设为启动并重启". The list is the market's (GitHub)
+plus, when `server.py` serves the page, the apps in minischeme-webrepl's `apps/` that differ
+from it, marked 本地编译: run `python tools/build_apps.py myapp --sync` in minischeme-apps to
+put your build there. The "KEY 18" button gives short/long presses; a click on the screen is a
+touch. The REPL evaluates Scheme in the device.
 
 ### 14.2 Headless: tools/sim.py
 
@@ -789,6 +838,8 @@ python tools/sim.py --fresh --config app.carousel=0 \
 |---|---|
 | `--fresh` | a new empty device (always use it for tests) |
 | `--app FILE` | boot an image (or a `.scm`, compiled in the page) |
+| `--install FILE` | install an image as the market does (its folder, config.ini, web page) and boot it |
+| `--webshot F.png` | save the running app's web page (needs `--install`) |
 | `--config S.K=V` | set `config.ini [S] K` (e.g. `app.carousel=0` stops page turning) |
 | `--press short\|long\|mid\|hold\|SECONDS` | the key |
 | `--wait S`, `--shot F.png`, `--eval CODE`, `--log`, `--js EXPR` | wait, screenshot, Scheme, terminal lines, JavaScript |
