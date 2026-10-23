@@ -55,7 +55,8 @@ Read these before writing any code. Most failed apps broke one of them.
 8. **Theme colors only** for the interface (`theme-text-main`, `theme-accent`...): never fixed
    RGB values for text, backgrounds or lines ([section 8](#8-colors)).
 9. **No embedded fonts.** Load fonts with `'system` and fall back to `F-TEXT`
-   ([section 9](#9-fonts-and-text)). Embedded fonts make the image large.
+   ([section 9](#9-fonts-and-text)). Embedded fonts make the image large; for the rest of
+   keeping an app small (short name prefixes, fewer tiny functions) see [16.7](#167-keeping-the-image-small).
 10. **Measure memory** in the simulator and on a board before you open a pull request
     ([section 16](#16-memory-budgets-leaks-and-garbage)). "It works" is not enough: the tide app
     worked and still allocated kilobytes per second for nothing.
@@ -134,6 +135,7 @@ minischeme-apps/
 └── tools/
     ├── build_apps.py         the build (APPS table: register new apps here)
     ├── board.py              develop on a real board (install, exec, screenshot, memory)
+    ├── msbc_stats.py         where an app image's bytes go (16.7)
     ├── api/                  the firmware API tables the build checks against
     └── compile_to_hex(.exe)  the compiler (built from ../minischeme when missing)
 ```
@@ -905,6 +907,44 @@ Reported as "leaking". Findings (2026-10-23, board COM42 and the simulator):
 - Lessons: compute views when the data or the time changes and keep them in globals; render
   only draws. Count how often each part is redrawn (wrap `gui-render-proc` from `exec` and
   count `gui-visible?` per section), then measure what one redraw allocates.
+
+### 16.7 Keeping the image small
+
+An app's image (`apps/<id>.msbc`) is its bytecode, then its gzipped web page and metadata. On
+the board the bytecode is built into an App ROM slot (256 KB; the image there is about 1.2x the
+bytecode part) and run from flash, so size costs flash, download time and the app folder's
+quota (256 KB by default, data included), not RAM. Measure with:
+
+```bash
+python tools/msbc_stats.py apps/myapp.msbc
+```
+
+What an image is made of (the medicine app, 126.6 KB, 2026-10):
+
+| Part | Size | Note |
+|---|---|---|
+| Shared framework | 52 KB | gui.scm 16, infopages 12, applib 21, appweb 3 (with a web page): in every app |
+| The app's own code | 59 KB | 1,502 lines |
+| web.html, gzipped | 13 KB | 30 KB before compression |
+
+By content the bytecode part is 46% instructions and **40% symbol names**: every function
+(each `define`d procedure and each `lambda`, named `let` included) keeps its own list of the
+global names it uses, stored in full (`string-append` costs 16 bytes in every function that
+calls it). Medicine has 542 functions and 4,110 such references to 804 names. Each function
+also has a 13-byte header. So:
+
+- **Short prefixes**: `med-` rather than `medicine-`; the prefix is stored with every reference.
+- **Fewer, fuller functions**: a helper called from one place, or a `(lambda (x) ...)` written
+  inline in every `map` / `filter`, is a function of its own with its own name list. Reuse
+  one named helper instead of repeating similar lambdas.
+- **Repeated literals**: a string literal is stored in each function that uses it. Text used
+  in several places goes into one top-level `define`.
+- **No embedded fonts** (`use-font` without `'system`): a font subset can be tens of KB.
+- **The web page**: rely on `appweb.css` / `appweb.js`; no base64 images, no copied libraries.
+- **Data**: large constant tables cost flash and download size; fetch them from the app
+  server, or keep them in the app's folder, when they can change.
+- The build prints each image's size; keep the bytecode part under about 150 KB so the App ROM
+  image stays well inside its 256 KB slot.
 
 ---
 
