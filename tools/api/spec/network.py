@@ -7,7 +7,7 @@ with an HTTP GET (redirects are not followed; timeout: interval-ms clamped to
 3..15 s) and streams the response through a JSON scanner: the document itself
 is never held in RAM. A failed fetch is retried within 5 s, a good one after
 interval-ms (at least 200 ms). The WASM simulator fetches for the feed through
-the page (web_repl/server.py serves the app proxy's `/app/` routes); the PC REPL
+the page (minischeme-webrepl server.py serves the app proxy's `/app/` routes); the PC REPL
 and the test VM have no fetcher, so their feed never gets a document. A new
 `json-feed-start` replaces the whole configuration and the board fetches the
 new URL at once (an app switching pages); documents of an older configuration
@@ -41,7 +41,7 @@ objects in the response").
 `json-feed-seq` takes the next one. Call it once per tick and redraw when the
 number changes. `field` and `ints` take a key's index or (since 1.2.0) its name.
 
-**With the app proxy.** tools/app_proxy.py turns web APIs into flat documents
+**With the app proxy.** The app proxy (minischeme-proxy) turns web APIs into flat documents
 `{"items":[{"t":type,"a":..,"b":..,"c":..,"d":..,"e":..}]}` with series as
 comma-separated integers; an app may name more keys (applib `app-keys!`).
 apps/lib/applib.scm starts the feed with

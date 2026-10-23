@@ -545,7 +545,7 @@ Rules:
   The user may also put the server's face first (`font_server_first`, `font_server_face`):
   system-font text is then drawn in any face the server has, so do not rely on the exact
   width of a string; measure it with `txt-w` / `gui-text-width` in render, as always.
-  Settings: config.ini `[fonts]` (applib.md, `font-server`).
+  Settings: config.ini `[fonts]` (minischeme-esp32 README, "Font server"); state: `(font-server)`.
 - **Text from the web** (titles, names, comments) is full of characters the font ROM lacks.
   For API 1.11 send it as it is (the font server fills the gaps); for older firmware, or a
   board you know is offline, clean it **on the app server**, before it goes into the

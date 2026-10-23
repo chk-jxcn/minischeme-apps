@@ -573,8 +573,8 @@ APIS = [
 (market-refresh)                      ; => #t
 (eq? (cdr (assq 'state (market-status))) 'refreshing)   ; => #t, until the index arrived
 ''',
-        notes='The market is `config.ini [market] market_url`, else `<[app] proxy>/market` (tools/app_proxy.py serves '
-              'web_repl/apps there). Its index.json lists every app with id, name, description, version, api, '
+        notes='The market is `config.ini [market] market_url`, else `<[app] proxy>/market` (the app proxy, minischeme-proxy, '
+              'serves its apps/ folder there). Its index.json lists every app with id, name, description, version, api, '
               'extensions, file, size and hash (FNV-1a of the image). The board fetches over plain HTTP. '
               'Automatic updates (`[market] market_auto_update = 1`): an app\'s boot checks once when the '
               'network comes up (within 30 s); with updates the device restarts into the system settings, '

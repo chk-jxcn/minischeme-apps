@@ -9,15 +9,19 @@
  * which the ESP32 and the WASM device load as /spiffs/app.fasl. Firmware-only
  * primitives the top level may call get stubs here; the snapshot names them
  * and the device binds its own at load time. Runs from any host width.
+ *
+ * Built against the firmware's runtime (minischeme-esp32 components/minischeme):
+ *   gcc -O2 -I<esp32>/components/minischeme/include -Itools tools/msbc_to_fasl.c \
+ *       <esp32>/components/minischeme/src/minischeme*.c -lm -o msbc_to_fasl
  */
-#include "../minischeme.h"
-#include "../minischeme_internal.h"
-#include "../minischeme_lib.h"
-#include "../minischeme_gui.h"
-#include "../minischeme_help.h"
-#include "../minischeme_device.h"
-#include "../minischeme_jsonfeed.h"
-#include "../web_repl/msbc.h"
+#include "minischeme.h"
+#include "minischeme_internal.h"
+#include "minischeme_lib.h"
+#include "minischeme_gui.h"
+#include "minischeme_help.h"
+#include "minischeme_device.h"
+#include "minischeme_jsonfeed.h"
+#include "msbc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
