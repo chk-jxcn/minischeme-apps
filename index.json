@@ -13,9 +13,9 @@
   ],
   "web": true,
   "file": "album.msbc",
-  "size": 56397,
+  "size": 56425,
   "scm": "album.allinone.scm",
-  "hash": "0ce13072"
+  "hash": "4c3e9657"
  },
  {
   "id": "calendar",
@@ -33,9 +33,9 @@
   ],
   "web": false,
   "file": "calendar.msbc",
-  "size": 52766,
+  "size": 52794,
   "scm": "calendar.allinone.scm",
-  "hash": "4ad26035"
+  "hash": "a3034b1a"
  },
  {
   "id": "combo",
@@ -49,9 +49,9 @@
   "page_ids": [],
   "web": false,
   "file": "combo.msbc",
-  "size": 85928,
+  "size": 85956,
   "scm": "combo.allinone.scm",
-  "hash": "32ca8352"
+  "hash": "f3c372af"
  },
  {
   "id": "crypto",
@@ -69,9 +69,9 @@
   ],
   "web": false,
   "file": "crypto.msbc",
-  "size": 41921,
+  "size": 41949,
   "scm": "crypto.allinone.scm",
-  "hash": "d48b4e0f"
+  "hash": "3f9e1838"
  },
  {
   "id": "futures",
@@ -89,9 +89,9 @@
   ],
   "web": false,
   "file": "futures.msbc",
-  "size": 41966,
+  "size": 41994,
   "scm": "futures.allinone.scm",
-  "hash": "cdc8f1e2"
+  "hash": "a62e1821"
  },
  {
   "id": "medicine",
@@ -107,9 +107,9 @@
   ],
   "web": true,
   "file": "medicine.msbc",
-  "size": 97503,
+  "size": 97531,
   "scm": "medicine.allinone.scm",
-  "hash": "ec0fd766"
+  "hash": "4653ca1d"
  },
  {
   "id": "memo",
@@ -126,9 +126,9 @@
   ],
   "web": true,
   "file": "memo.msbc",
-  "size": 50696,
+  "size": 50724,
   "scm": "memo.allinone.scm",
-  "hash": "a0d6126f"
+  "hash": "b423f14e"
  },
  {
   "id": "news",
@@ -147,9 +147,9 @@
   ],
   "web": false,
   "file": "news.msbc",
-  "size": 40224,
+  "size": 40252,
   "scm": "news.allinone.scm",
-  "hash": "fe679b54"
+  "hash": "f4ac4edd"
  },
  {
   "id": "notifier",
@@ -166,9 +166,9 @@
   ],
   "web": true,
   "file": "notifier.msbc",
-  "size": 52482,
+  "size": 52510,
   "scm": "notifier.allinone.scm",
-  "hash": "4f3a7963"
+  "hash": "74d30c76"
  },
  {
   "id": "pcmonitor",
@@ -219,9 +219,9 @@
   ],
   "web": false,
   "file": "stocks.msbc",
-  "size": 43707,
+  "size": 43735,
   "scm": "stocks.allinone.scm",
-  "hash": "bb4dc5ea"
+  "hash": "ad09a967"
  },
  {
   "id": "tide",
@@ -239,9 +239,9 @@
   ],
   "web": false,
   "file": "tide.msbc",
-  "size": 53038,
+  "size": 53066,
   "scm": "tide.allinone.scm",
-  "hash": "a8cd9706"
+  "hash": "c93a1f91"
  },
  {
   "id": "usage",
@@ -260,9 +260,9 @@
   ],
   "web": false,
   "file": "usage.msbc",
-  "size": 44419,
+  "size": 44447,
   "scm": "usage.allinone.scm",
-  "hash": "67cf593b"
+  "hash": "f07b5d4c"
  },
  {
   "id": "weather",
@@ -282,9 +282,9 @@
   ],
   "web": false,
   "file": "weather.msbc",
-  "size": 51766,
+  "size": 51794,
   "scm": "weather.allinone.scm",
-  "hash": "63400c51"
+  "hash": "a64c38ac"
  },
  {
   "id": "wxpusher",
@@ -300,8 +300,8 @@
   ],
   "web": true,
   "file": "wxpusher.msbc",
-  "size": 55174,
+  "size": 55202,
   "scm": "wxpusher.allinone.scm",
-  "hash": "f8425181"
+  "hash": "61e2b002"
  }
 ]

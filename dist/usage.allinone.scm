@@ -920,7 +920,7 @@
 ;;;   interval-ms  how often the board fetches it while the page is shown
 ;;;   render-proc  (items) -> draws the body between header and footer
 ;;;
-;;; Data: the app proxy (tools/app_proxy.py) answers {"items":[{t a..e}]}.
+;;; Data: the app proxy (minischeme-proxy) answers {"items":[{t a..e}]}.
 ;;; Each document is copied into vectors #(t a b c d e) and kept per URL, so a
 ;;; page switch shows the last data at once while its new fetch runs.
 ;;; Screen: header (title, page n/N except on the home page, clock), body,
@@ -1194,7 +1194,7 @@
   (let ((v (config-get key)))
     (if (and (string? v) (> (string-length v) 0)) v default)))
 
-;; config.ini [server] proxy_url / [app] proxy = http://<pc>:8087 (tools/app_proxy.py); "" when unset
+;; config.ini [server] proxy_url / [app] proxy = http://<host>:8087 (minischeme-proxy); "" when unset
 (define (app-proxy)
   (let* ((p (app-config "proxy_url" (app-config "proxy" ""))) (n (string-length p)))
     (if (and (> n 0) (char=? (string-ref p (- n 1)) #\/)) (substring p 0 (- n 1)) p)))
@@ -1445,7 +1445,7 @@
     (gui-text-wrap 16 (+ y 34) (- (scr-w) 32) 60 (car (str-split app-feed-url #\?)) theme-text-muted F-TEXT LINE-H)
     (if (or app-error (eq? (app-status 'state) 'error))
         (txt-wrap 16 (+ y 100) (- (scr-w) 32) 80
-                  "请在电脑上运行 tools/app_proxy.py，并在 config.ini [app] proxy 中填写它的地址"
+                  "请在设备网页的常用设置里填写应用代理地址（minischeme-proxy 或公网服务器），并确认能连上"
                   theme-warning))))
 
 (define (app-render)
