@@ -526,18 +526,19 @@ Rules:
 - **Which characters exist.** The system face is the font ROM's `simsun-16`: ASCII and
   **GB2312** exactly as Python's `gb2312` codec maps it (simplified Chinese, the common symbols
   and full-width punctuation, kana, Greek and Cyrillic), plus `·` (U+00B7) and `•` (U+2022)
-  built into the firmware. Anything else (emoji, traditional or rare characters, many
-  symbols) is drawn as a box. Not `gbk`: it accepts traditional characters the font lacks.
-  Two common look-alikes have other code points in the font: the dash is `―` (U+2015, not
-  `—` U+2014) and the middle dot is `·` (U+00B7, not `・` U+30FB, which the font lacks). Avoid
-  rare symbols in your own strings (`"23 度"`, or `"23°"` only after you saw it render on a
-  board).
+  built into the firmware. Anything else is drawn as a box: emoji, Korean (Hangul),
+  traditional and rare characters (`與`, `瑆`), Japanese kanji outside GB2312, many symbols
+  (kana are there). Not `gbk`: it accepts traditional characters the font lacks. Three common
+  look-alikes have other code points in the font: the dash is `―` (U+2015, not `—` U+2014),
+  the middle dot `·` (U+00B7, not `・` U+30FB, which the font lacks), the wave `～` (U+FF5E,
+  not `〜` U+301C). Avoid rare symbols in your own strings (`"23 度"`, or `"23°"` only after you
+  saw it render on a board).
 - **Text from the web** (titles, names, comments) is full of characters the face lacks. Clean
   it **on the app server**, before it goes into the document:
 
   ```python
-  BOARD_EXTRA = {"·", "•"}                  # built into the firmware
-  BOARD_SAME = {"—": "―", "・": "·"}   # the font's code point for these
+  BOARD_EXTRA = {"\u00b7", "\u2022"}                  # built into the firmware
+  BOARD_SAME = {"\u2014": "\u2015", "\u30fb": "\u00b7", "\u301c": "\uff5e"}   # the font's code points
 
   def board_text(s: str) -> str:
       """Only characters the board's font has (ASCII, GB2312, BOARD_EXTRA); the others dropped."""
