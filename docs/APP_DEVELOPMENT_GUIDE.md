@@ -319,9 +319,10 @@ what you need daily.
         (app-local-page "页名" render-proc)))                ; no fetch, render gets '()
 ```
 
-- `url-proc`: `() -> "http://server/app/x?..."`, called **once** at `app-define!` (a changed
-  setting needs a restart of the app). Use `(app-url "/app/x?...")`, which puts the configured
-  server in front.
+- `url-proc`: `() -> "http://server/app/x?..."`, called **once** at `app-define!`. Use
+  `(app-url "/app/x?...")`, which puts the configured server in front. To change a page's
+  document while the app runs (a choice made in the web page): `(app-set-url! i url)`, which
+  fetches at once when page `i` shows.
 - Pages with the same URL share one document (tide's 3 pages use one).
 - `interval-ms`: how often the page's data is fetched **while the page is shown**.
 - `render-proc`: `(items) -> draws the body`. It is called with `'()` on local pages and on
@@ -373,6 +374,27 @@ fallback: `(or (it-int it 3) 0)`.
 3. At the next display service the renderer calls `gui-render-proc` (applib's `app-render`) for
    the dirty rows. applib draws header, body (your render procedure) and footer, each only if
    `gui-visible?`.
+
+### 6.5 A list longer than one screen
+
+The header shows the title, the subtitle (page 1) or the page's name (other pages), and on
+pages 2.. applib's own badge `2/4`, which counts **applib pages**. A list that needs several
+screens (20 videos, 5 per screen) is not several applib pages:
+
+- Keep it on **one applib page** and turn its screens yourself: a global screen index, the
+  short press (`app-button`) for the next screen, the long press (`app-long-press`) for the
+  previous one, both wrapping around; then `(app-invalidate-all)`.
+- Show the position **in the header**: `app-subtitle-proc` returns `"综合热门 2/4"`. Keep title
+  and subtitle short enough to fit left of the clock (they scroll otherwise).
+- Do not make each category (or each screen) an applib page as well: the user then sees two
+  page numbers (applib's badge and yours), and the carousel jumps between categories before
+  the user saw their later screens. A choice of what to show (a category, a region) is a
+  setting and a control on the web page; switch with `(app-set-url! 0 url)`.
+- The carousel turns applib pages only: with one page it does nothing. If the screens should
+  turn by themselves, do it in `app-tick-proc` (every N seconds, N a setting, 0 = off) and
+  restart the count after a key press.
+- Pictures of the next screen can be downloaded while the user reads the current one; keep
+  the ones already shown, so going back shows them at once (section 11.7).
 
 ---
 
