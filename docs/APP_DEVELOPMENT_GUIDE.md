@@ -386,13 +386,21 @@ screens (20 videos, 5 per screen) is not several applib pages:
   previous one, both wrapping around; then `(app-invalidate-all)`.
 - Show the position **in the header**: `app-subtitle-proc` returns `"综合热门 2/4"`. Keep title
   and subtitle short enough to fit left of the clock (they scroll otherwise).
-- Do not make each category (or each screen) an applib page as well: the user then sees two
-  page numbers (applib's badge and yours), and the carousel jumps between categories before
-  the user saw their later screens. A choice of what to show (a category, a region) is a
-  setting and a control on the web page; switch with `(app-set-url! 0 url)`.
-- The carousel turns applib pages only: with one page it does nothing. If the screens should
-  turn by themselves, do it in `app-tick-proc` (every N seconds, N a setting, 0 = off) and
-  restart the count after a key press.
+- Do not make each screen an applib page: applib's badge would count screens of one list.
+  One list whose content the user chooses (a category, a region) is a setting and a control
+  on the web page; switch with `(app-set-url! 0 url)`.
+- **Several lists, each with its own screens** (boards the user picks, adds and orders): the
+  app keeps the lists itself on one applib page, a list index and a screen index, so the
+  user can add or remove lists at run time (applib's pages are fixed at `app-define!`). Say
+  both positions in the header (`"排行榜·游戏 2/3 · 1/4"` or the list's name with its screen,
+  the list's place elsewhere), define what the key does at the ends (the last screen of a
+  list goes on to the next list), and keep a per-list setting for how many entries it shows
+  and whether it has screens at all (no screens: its first N entries only).
+- The carousel turns applib pages only: with one page it does nothing. If screens or lists
+  should turn by themselves, do it in `app-tick-proc` (every N seconds, N a setting, 0 =
+  off) and restart the count after a key press.
+- Each list costs a document (fetch it when the list shows, or keep a small cached copy) and
+  its pictures (section 11.7): cap the number of lists and of entries per list.
 - Pictures of the next screen can be downloaded while the user reads the current one; keep
   the ones already shown, so going back shows them at once (section 11.7).
 
