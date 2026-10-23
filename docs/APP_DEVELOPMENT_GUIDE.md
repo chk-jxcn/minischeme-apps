@@ -419,10 +419,11 @@ y   0 ┌───────────────────────�
 - Text rows: 16 px glyphs, 20..28 px pitch (`LINE-H` = 20). A section label:
   `(section y "标签")`, content about 24 px below.
 - Lists: draw only what fits: stop when `y` passes `(body-bottom)`. Long text in list rows
-  (titles, names): `gui-text-wrap` into a fixed number of lines, not `txt-fit` / `txt-wrap`
-  (section 9: they may scroll). Keep every string inside the screen, the right margin
-  included: measure with `txt-w`, and give a column the width that is left after the picture
-  or number beside it.
+  (titles, names): scroll it in its box (`txt-fit`, the marquee the user configured: the whole
+  title readable over time) or wrap it into a fixed number of lines ending in "…"
+  (`gui-text-wrap`, never moves), as the design asks (section 9). Keep every string inside
+  the screen, the right margin included: measure with `txt-w`, and give a column the width
+  that is left after the picture or number beside it.
 - Empty state: one muted line, e.g. `(txt 14 70 "暂无数据" theme-text-muted)`.
 - Charts: a `theme-card-hdr` filled rectangle, the chart on top (`line-chart`, `bar-chart`,
   `gui-chart`), axis labels `theme-text-muted`.
@@ -517,24 +518,38 @@ Rules:
 - Width: `(txt-w s)`. One line that may be too long: `(txt-fit x y w s color)` (marquee or
   "…" as the user configured). A paragraph: `(txt-wrap x y w h s color)` (it scrolls when the
   user configured `wrap_marquee`).
-- **Many long strings on one screen** (a list of titles): `txt-fit` and `txt-wrap` scroll
-  (marquee) by default, and every scrolling box redraws its rows several times a second: a
-  list of five scrolling titles allocates tens of KB of garbage per second (measure it, 16.4)
-  and is hard to read, because each row shows half a sentence at any moment. Draw them with
-  `(gui-text-wrap x y w h s color F-TEXT LINE-H)`: it wraps to as many lines as fit in `h` and
-  ends cut text with "…", without animation. Keep `txt-fit` for one headline.
+- **Many long strings on one screen** (a list of titles): two ways, as the design asks.
+  - Scroll them: `(txt-fit x y w s color)` per row. A text that fits stands still; a longer
+    one moves as config.ini `[text] marquee` says (pixel, char, page; none cuts it with "…"),
+    so the whole title can be read over time. Since firmware v1.0.79 the moving boxes replay
+    one recording of the screen: five scrolling titles allocate about 0.25 KB/s in the
+    simulator, about what static text costs (older firmware ran the render procedure for
+    every step of every box, several KB/s). Every change of the app (a clock tick, a new
+    picture) records the screen once more, so render must stay cheap (16.4).
+  - Wrap them: `(gui-text-wrap x y w h s color F-TEXT LINE-H)` wraps into as many lines as fit
+    in `h` and ends cut text with "…"; nothing moves.
 - **Which characters exist.** The system face is the font ROM's `simsun-16`: ASCII and
   **GB2312** exactly as Python's `gb2312` codec maps it (simplified Chinese, the common symbols
   and full-width punctuation, kana, Greek and Cyrillic), plus `·` (U+00B7) and `•` (U+2022)
-  built into the firmware. Anything else is drawn as a box: emoji, Korean (Hangul),
-  traditional and rare characters (`與`, `瑆`), Japanese kanji outside GB2312, many symbols
-  (kana are there). Not `gbk`: it accepts traditional characters the font lacks. Three common
-  look-alikes have other code points in the font: the dash is `―` (U+2015, not `—` U+2014),
-  the middle dot `·` (U+00B7, not `・` U+30FB, which the font lacks), the wave `～` (U+FF5E,
-  not `〜` U+301C). Avoid rare symbols in your own strings (`"23 度"`, or `"23°"` only after you
-  saw it render on a board).
-- **Text from the web** (titles, names, comments) is full of characters the face lacks. Clean
-  it **on the app server**, before it goes into the document:
+  built into the firmware. Not `gbk`: it accepts traditional characters the font lacks. Three
+  common look-alikes have other code points in the font: the dash is `―` (U+2015, not `—`
+  U+2014), the middle dot `·` (U+00B7, not `・` U+30FB, which the font lacks), the wave `～`
+  (U+FF5E, not `〜` U+301C). Avoid rare symbols in your own strings (`"23 度"`, or `"23°"` only
+  after you saw it render on a board).
+- **The font server fills the gaps (API 1.11).** A character the board's fonts lack (emoji,
+  Korean, traditional and rare characters, Japanese kanji outside GB2312) is fetched from the
+  font server (minischeme-proxy `font_server.py`, a service of its own without a password),
+  kept on the board, and the text is redrawn when it arrives: until then, and on a board
+  without network or with `font_server_on = 0`, it is a box. Emoji (UTF-8 above U+FFFF) are
+  drawn since 1.11; variation selectors and joiners (U+FE0F, U+200D) are drawn as nothing.
+  The user may also put the server's face first (`font_server_first`, `font_server_face`):
+  system-font text is then drawn in any face the server has, so do not rely on the exact
+  width of a string; measure it with `txt-w` / `gui-text-width` in render, as always.
+  Settings: config.ini `[fonts]` (applib.md, `font-server`).
+- **Text from the web** (titles, names, comments) is full of characters the font ROM lacks.
+  For API 1.11 send it as it is (the font server fills the gaps); for older firmware, or a
+  board you know is offline, clean it **on the app server**, before it goes into the
+  document:
 
   ```python
   BOARD_EXTRA = {"\u00b7", "\u2022"}                  # built into the firmware

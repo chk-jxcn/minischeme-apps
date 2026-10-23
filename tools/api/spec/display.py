@@ -905,6 +905,42 @@ n  ; => 3
               'system_16 (or 0) and clock_32 (or 1) name the built-in fonts. Kept until the next '
               'boot; queues a full redraw.',
     ),
+    api('font-server', 'font',
+        sig='(font-server)',
+        desc='The font server: glyphs the fonts lack (or, with font_server_first, all system-font text) fetched on demand and kept on the board.',
+        returns='An alist: (on . #t/#f), (url . "..."), (first . #t/#f), (face . "simsun") and (size . 16) '
+                'asked for, (state . s) with s one of off, idle, queued, fetching, waiting (after a '
+                'failure, retried in 5 s, after 3 failures every 60 s), (pending . n) code points '
+                'waiting, (received . n) and (absent . n) glyphs since boot (absent: no font of the '
+                'server has it), (requests . n), (error . "") the last failure. Never an error.',
+        example='''
+(cdr (assq 'state (font-server)))   ; => idle
+''',
+        where=DEVICE, check=False, since='1.11.0',
+        notes='config.ini [fonts]: font_server (URL, default http://124.222.231.186:8090, a service '
+              'of its own: minischeme-proxy font_server.py, no password, no app server needed), '
+              'font_server_on (0: never ask), font_server_first (1: the server\'s face first for '
+              'system-font text; the board\'s glyphs stand in until the server\'s arrive), '
+              'font_server_face (the face asked for; empty: the system font\'s, simsun). The '
+              'settings page applies them at once. Glyphs are kept in '
+              '/spiffs/fonts/net-<face>-<size>.mgh (512 slots, 2048 with font_server_first) and a '
+              'small RAM cache (about 1 KB, 4.6 KB with font_server_first); a character drawn '
+              'before its glyph arrived is redrawn when it does. Text keeps working without a '
+              'network: what no font has is drawn as a box. Emoji and other code points above '
+              'U+FFFF come only from the font server; variation selectors and joiners (U+FE0F, '
+              'U+200D) are drawn as nothing.',
+    ),
+    api('font-server-clear', 'font',
+        sig='(font-server-clear)',
+        desc="Drops the glyphs downloaded from the font server (they are asked for again when drawn).",
+        returns='#t. Queues a full redraw.',
+        example='''
+(font-server-clear)   ; => #t
+''',
+        where=DEVICE, check=False, since='1.11.0',
+        notes='The board drops them by itself when the server\'s fonts change (the server sends '
+              'an identity with every reply).',
+    ),
     api('font-sources', 'font',
         sig='(font-sources id)',
         desc='The chain searched for each glyph of slot id, in order, as ((source name height glyphs bits) ...).',

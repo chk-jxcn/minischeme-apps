@@ -19,7 +19,7 @@ Hardware-specific procedures are extension APIs (ext='esp32'): versioned on
 their own, present only on devices that have them (EXTENSIONS below).
 """
 
-API_VERSION = '1.10.0'  # 1.10: fs-download, fs-download-status; 1.9: MSBC version 2 images
+API_VERSION = '1.11.0'  # 1.11: font-server, emoji (UTF-8 above U+FFFF); 1.10: fs-download; 1.9: MSBC 2
 
 # Extension APIs and their versions
 EXTENSIONS = {
