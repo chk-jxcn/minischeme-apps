@@ -758,6 +758,10 @@ Tips:
   `tools/board.py` sends it in the `X-MiniScheme-Auth` header. Never print or commit it.
 - Do not install test builds on a board someone uses daily without asking. Put back the boot app
   you replaced when you finish.
+- **Before reflashing a board** (a firmware with a different partition layout erases its file
+  system): back up its files in the WebREPL's file manager (**⬇ 备份全部**, one zip) and write
+  them back afterwards (**⬆ 恢复备份**). The WebREPL flasher compares the partition tables and
+  asks first.
 
 ### 15.2 tools/board.py
 
@@ -808,7 +812,7 @@ The board shows the error on screen for 5 s and restarts into the system setting
 
 | Resource | Size | Rule |
 |---|---|---|
-| VM heap | ~114 KB (firmware 1.0.74; `/api/info` `heap_capacity`) | the app's **live** data under 32 KB (the tests check it) |
+| VM heap | ~115 KB (firmware 1.0.70+; `/api/info` `heap_capacity`) | the app's **live** data under 32 KB (the tests check it) |
 | System heap | ~38 KB free while an app runs | the firmware's (WiFi, HTTP, feed); `apply` and the display list use it |
 | Feed document | ~4 KB of values, 64 items | keep endpoints small |
 | App ROM slot | 256 KB per image | bytecode and literals are free in RAM |
