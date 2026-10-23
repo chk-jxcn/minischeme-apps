@@ -241,7 +241,7 @@ Branch, commit the sources (not the build outputs), push, open a PR ([section 18
 MiniScheme is a small Scheme compiled to bytecode on the PC. It is **not** R7RS: many common
 procedures do not exist on the device. The authoritative list is the API reference
 (`minischeme-esp32/docs/api/v1.x.0.md`, "status" column: `stable` exists, `reserved` does not).
-The table below was checked on the simulator (firmware API 1.7/1.8).
+The table below was checked on the simulator (firmware API 1.8).
 
 ### 5.1 What exists
 
@@ -425,31 +425,46 @@ y   0 ┌───────────────────────�
 
 ## 8. Colors
 
-- Colors are RGB565 integers. Make one with `(gui-rgb r g b)` (or gui.scm's `(rgb r g b)`) at
-  the **top level**, never inside render.
-- Use the theme variables for everything in the interface:
+Colors are RGB565 integers resolved through **color schemes** (API 1.8): a day scheme (light)
+and a night scheme (dark), switched automatically by the light sensor, fixed times or sunrise
+and sunset (`config.ini [theme]`, the device page's 配色方案 tab). Users can change any color
+there (each color in the preview opens a color picker) or in `theme.css` files.
 
-| Variable | Use |
-|---|---|
-| `theme-bg` | the canvas (applib clears with it); text on filled color boxes |
-| `theme-card-hdr` | header / footer strip, chart backgrounds |
-| `theme-card-border`, `theme-divider` | outlines, rules, grid lines |
-| `theme-text-main`, `theme-text-sub`, `theme-text-muted` | values, secondary text, labels |
-| `theme-accent`, `theme-accent-dark` | highlights; filled badges |
-| `theme-success`, `theme-warning`, `theme-danger`, `theme-purple` | status colors |
-| `theme-dark-gray` | inactive tracks |
-| `theme-seg-on`, `theme-seg-off` | seven-segment digits (`gui-seg7`) |
+- Use the theme variables for everything in the interface. They are set from their aliases at
+  the start and again whenever the scheme changes, so code that draws with them follows day
+  and night without any work:
 
+| Variable | Alias | Use |
+|---|---|---|
+| `theme-bg` | `bg` | the canvas (applib clears with it); text on filled color boxes |
+| `theme-card-hdr` | `titlebar_bg` | header / footer strip, chart backgrounds |
+| `theme-card-border`, `theme-divider` | `card_border`, `divider_border` | outlines, rules, grid lines |
+| `theme-text-main`, `theme-text-sub`, `theme-text-muted` | `text_fg`, `text_sub_fg`, `text_muted_fg` | values, secondary text, labels |
+| `theme-accent`, `theme-accent-dark` | `accent_fg`, `accent_bg` | highlights; filled badges |
+| `theme-success`, `theme-warning`, `theme-danger`, `theme-purple` | `success_fg` ... | status colors |
+| `theme-dark-gray` | `inactive_fg` | inactive tracks |
+| `theme-seg-on`, `theme-seg-off` | `seg_on_fg`, `seg_off_fg` | seven-segment digits (`gui-seg7`); by day the unlit segments are the background (not shown) |
+
+- **Never keep a color in your own global at load time** (`(define myapp-bar (gui-rgb ...))`):
+  it does not follow the scheme. Draw with `(theme-color "alias")` and give your own aliases
+  defaults for both schemes at the top level:
+
+  ```scheme
+  (theme-defaults! "night" '(("myapp_bar_fg" . "#62d0f0")))
+  (theme-defaults! "day"   '(("myapp_bar_fg" . "accent_fg")))   ; a value may name another alias
+  ;; in render:
+  (gui-rect x y w h (theme-color "myapp_bar_fg") #t)
+  ```
+
+  An alias nobody defines falls back to its category (`myapp_bar_fg` → `fg`), so even a
+  forgotten default stays readable. Name aliases `<app>_<what>_<fg|bg|border>`.
+- Make sure both schemes look right: test with `--config theme.theme=day` and
+  `--config theme.theme=night` in the simulator (or the 配色方案 tab on a board).
 - Fixed colors are acceptable only for **data** that has an inherent color (a photo, a weather
-  icon's sun). Never for text, backgrounds or lines.
-- The user can change the display output (`color_bits`, `palette`, e.g. fewer colors or a
-  monochrome panel). Do not encode meaning in hue alone: also use position, text or shape.
-- **Color schemes (firmware API 1.8, when released):** the theme variables become aliases
-  resolved through day/night schemes and the user's `theme.css`. Code that uses the theme
-  variables keeps working. Code that stores a color in its own global at load time does not
-  follow the scheme: call `(theme-color "alias")` when drawing, and give your own aliases
-  defaults with `(theme-defaults! "night" '(("myapp_bar_fg" . "#62d0f0")))`. See
-  applib.md section 4.8 once 1.8 is out.
+  icon's sun: give even those an alias with defaults, as the weather app does).
+- The user can also change the display output (`color_bits`, `palette`: fewer colors, gray,
+  a monochrome panel). Do not encode meaning in hue alone: also use position, text or shape.
+- Full reference: applib.md section 4.8.
 
 ---
 
@@ -630,7 +645,7 @@ id = myapp                 ; = the folder and file names
 name = 我的应用             ; shown to the user
 description = 一句话说明
 version = 1                ; bump it on every change you want devices to install
-api = 1.7                  ; the firmware API it needs (the build checks and fills it in)
+api = 1.8                  ; the firmware API it needs (the build checks and fills it in)
 pages = 2
 page_ids = main, detail    ; English page names (combined apps address pages by them)
 ; storage_kb = 512         ; only if the app stores much data: replaces the 256 KB folder quota
@@ -790,7 +805,7 @@ The board shows the error on screen for 5 s and restarts into the system setting
 
 | Resource | Size | Rule |
 |---|---|---|
-| VM heap | ~118 KB (firmware 1.0.70+; `/api/info` `heap_capacity`) | the app's **live** data under 32 KB (the tests check it) |
+| VM heap | ~114 KB (firmware 1.0.74; `/api/info` `heap_capacity`) | the app's **live** data under 32 KB (the tests check it) |
 | System heap | ~38 KB free while an app runs | the firmware's (WiFi, HTTP, feed); `apply` and the display list use it |
 | Feed document | ~4 KB of values, 64 items | keep endpoints small |
 | App ROM slot | 256 KB per image | bytecode and literals are free in RAM |
