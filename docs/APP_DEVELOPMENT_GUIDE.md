@@ -502,19 +502,27 @@ Rules:
   `(gui-text-wrap x y w h s color F-TEXT LINE-H)`: it wraps to as many lines as fit in `h` and
   ends cut text with "…", without animation. Keep `txt-fit` for one headline.
 - **Which characters exist.** The system face is the font ROM's `simsun-16`: ASCII and
-  **GB2312** (simplified Chinese, the common symbols and full-width punctuation, kana, Greek
-  and Cyrillic). Anything else (emoji, traditional or rare characters, many symbols) is drawn
-  as a box. Avoid rare symbols in your own strings (`"23 度"`, or `"23°"` only after you saw it
-  render on a board).
+  **GB2312** exactly as Python's `gb2312` codec maps it (simplified Chinese, the common symbols
+  and full-width punctuation, kana, Greek and Cyrillic), plus `·` (U+00B7) and `•` (U+2022)
+  built into the firmware. Anything else (emoji, traditional or rare characters, many
+  symbols) is drawn as a box. Not `gbk`: it accepts traditional characters the font lacks.
+  Two common look-alikes have other code points in the font: the dash is `―` (U+2015, not
+  `—` U+2014) and the middle dot is `·` (U+00B7, not `・` U+30FB, which the font lacks). Avoid
+  rare symbols in your own strings (`"23 度"`, or `"23°"` only after you saw it render on a
+  board).
 - **Text from the web** (titles, names, comments) is full of characters the face lacks. Clean
   it **on the app server**, before it goes into the document:
 
   ```python
+  BOARD_EXTRA = {"·", "•"}                  # built into the firmware
+  BOARD_SAME = {"—": "―", "・": "·"}   # the font's code point for these
+
   def board_text(s: str) -> str:
-      """Only characters the board's font has (ASCII and GB2312); the others dropped."""
+      """Only characters the board's font has (ASCII, GB2312, BOARD_EXTRA); the others dropped."""
       out = []
       for ch in s:
-          if " " <= ch <= "~":
+          ch = BOARD_SAME.get(ch, ch)
+          if " " <= ch <= "~" or ch in BOARD_EXTRA:
               out.append(ch)
               continue
           try:
@@ -524,6 +532,9 @@ Rules:
               out.append(" ")
       return " ".join("".join(out).split())   # no runs of spaces
   ```
+
+  Check a doubt against the font itself: `minischeme-webrepl/tools/make_font.py` has
+  `decode_mfnt(data)`, which gives the code points of `fonts/simsun-16.mfnt`.
 
 ---
 
