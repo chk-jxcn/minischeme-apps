@@ -2,7 +2,11 @@
 """Compiles the bundled MiniScheme apps to MSBC bytecode images and metadata.
 
 Usage:
-    python tools/build_apps.py [--system-fonts] [--sync] [app1 app2 ...]
+    python tools/build_apps.py [--system-fonts] [--sync] [--msbc1] [app1 app2 ...]
+
+Images are MSBC version 2 (each symbol name once, in a table: about a
+quarter smaller), which firmware API 1.9 reads: every app then needs at
+least API 1.9. --msbc1 writes version 1 (names inline) for older firmware.
 
 Everything is written inside this repository (dist/, apps/, index.json).
 --sync also copies the results into sibling checkouts, when they exist:
@@ -211,6 +215,8 @@ def app_meta(app_id, source_text):
     raw = COMBO_META.get(app_id) or open(path, 'rb').read().replace(b'\r\n', b'\n').decode('utf-8')
     meta = sanitize_config(app_id, raw)
     need, exts, used, reserved = api_needs(source_text)
+    if not MSBC1 and A.version_tuple(need) < A.version_tuple(MSBC2_API):
+        need = MSBC2_API   # the image format itself needs it
     for n in reserved:
         print(f"{app_id}: warning: {n} is a reserved API (not provided yet): guard it with (api-has? '{n})")
     declared = re.search(r'(?m)^api\s*=\s*([0-9.]+)', meta)
@@ -321,6 +327,8 @@ def ensure_compiler():
 USE_FONT_RE = re.compile(r'\((?:font-use|use-font)\s+([0-9]+)\s+"([^"]+)"(?:\s+([0-9]+))?(?:\s+\'(embed|system))?\s*\)')
 SYSTEM_FONTS = False  # --system-fonts
 SYNC = False          # --sync: also copy the results into sibling repositories
+MSBC1 = False         # --msbc1: MSBC version 1 images (firmware before API 1.9)
+MSBC2_API = '1.9'     # the API that reads MSBC version 2
 
 
 def embed_fonts(name, text):
@@ -382,7 +390,8 @@ def compile_sources(sources, name=None):
     text = source_text(sources)
     if name:
         text = embed_fonts(name, text)
-    r = subprocess.run([COMPILER_EXE, '-'], input=text, capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+    r = subprocess.run([COMPILER_EXE, '-'] + (['--msbc1'] if MSBC1 else []), input=text, capture_output=True,
+                       text=True, encoding='utf-8', cwd=ROOT)
     if r.returncode != 0:
         sys.exit(f'Compile error in {name}:\n' + r.stderr)
     return bytes.fromhex(r.stdout.strip())
@@ -457,10 +466,11 @@ def write_index():
 
 
 def main():
-    global SYSTEM_FONTS, SYNC
+    global SYSTEM_FONTS, SYNC, MSBC1
     args = sys.argv[1:]
     SYSTEM_FONTS = '--system-fonts' in args
     SYNC = '--sync' in args
+    MSBC1 = '--msbc1' in args
     names = [a for a in args if not a.startswith('--')] or list(APPS)
 
     ensure_compiler()

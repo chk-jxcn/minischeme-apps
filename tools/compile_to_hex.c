@@ -1,5 +1,7 @@
 #define MINISCHEME_NO_MAIN 1
-/* Compiles Scheme source (argv[1], or stdin with "-") to MSBC and prints it as hex. Used by tools/build_apps.py and tools/bench_board.py. */
+/* Compiles Scheme source (the argument, or stdin with "-") to MSBC and prints it as hex.
+ * MSBC version 2 (a symbol table, firmware API 1.9+) by default; --msbc1 writes
+ * version 1 for older firmware. Used by tools/build_apps.py and tools/board.py. */
 #include "minischeme.h"
 #include "minischeme_internal.h"
 #include "msbc.h"
@@ -10,8 +12,14 @@
 
 int main(int argc, char **argv) {
     char *source_text = NULL;
-    if (argc >= 2 && strcmp(argv[1], "-") != 0) {
-        source_text = vm_strdup(argv[1]);
+    const char *source_arg = NULL;
+    uint16_t msbc_version = MSBC_VERSION;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--msbc1") == 0) msbc_version = 1;
+        else if (!source_arg) source_arg = argv[i];
+    }
+    if (source_arg && strcmp(source_arg, "-") != 0) {
+        source_text = vm_strdup(source_arg);
     } else {
         size_t cap = 65536;
         size_t len = 0;
@@ -59,7 +67,7 @@ int main(int argc, char **argv) {
 
     uint8_t *buf = NULL;
     size_t len = 0;
-    if (!msbc_serialize(vm, code_val, &buf, &len)) {
+    if (!msbc_serialize_version(vm, code_val, &buf, &len, msbc_version)) {
         fprintf(stderr, "Serialization error\n");
         mini_destroy(vm);
         return 1;

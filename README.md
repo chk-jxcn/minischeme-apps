@@ -53,14 +53,17 @@ and is real: when a source fails the app keeps its last data (no demo values).
 
 ## Building Applications to MSBC Bytecode
 ```bash
-python tools/build_apps.py [--system-fonts] [--sync] [app ...]
+python tools/build_apps.py [--system-fonts] [--sync] [--msbc1] [app ...]
 ```
 This compiles each Scheme app into an MSBC binary package with embedded metadata and font ROM dependencies.
+Images are MSBC version 2 (each symbol name once, in a table: about a quarter smaller), which needs
+firmware API 1.9; `--msbc1` writes version 1 for older firmware. `python tools/msbc_stats.py <image>`
+shows where an image's bytes go.
 All outputs stay inside this repository: `dist/` (images, all-in-one sources, `index.json`,
 `app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
 
 The build checks each app's API requirement: it fails when the code needs a newer API than
-`meta.ini` declares or than the firmware provides (`tools/api`, now API 1.8.0), or uses an
+`meta.ini` declares or than the firmware provides (`tools/api`, now API 1.9.0), or uses an
 extension not declared there.
 
 A combined app (`apps/<id>/meta.ini` with `[combo] members = a, b`) is assembled from its

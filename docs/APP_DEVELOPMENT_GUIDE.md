@@ -56,7 +56,7 @@ Read these before writing any code. Most failed apps broke one of them.
    RGB values for text, backgrounds or lines ([section 8](#8-colors)).
 9. **No embedded fonts.** Load fonts with `'system` and fall back to `F-TEXT`
    ([section 9](#9-fonts-and-text)). Embedded fonts make the image large; for the rest of
-   keeping an app small (short name prefixes, fewer tiny functions) see [16.7](#167-keeping-the-image-small).
+   keeping an app small (fewer tiny functions, shared literals) see [16.7](#167-keeping-the-image-small).
 10. **Measure memory** in the simulator and on a board before you open a pull request
     ([section 16](#16-memory-budgets-leaks-and-garbage)). "It works" is not enough: the tide app
     worked and still allocated kilobytes per second for nothing.
@@ -194,7 +194,8 @@ for _app in ('weather', 'news', ..., 'tide', 'medicine', 'myapp'):
 python tools/build_apps.py myapp
 ```
 
-The build prints `myapp: API 1.x (N procedures)` and writes `apps/myapp.msbc`. It fails on
+The build prints `myapp: API 1.9 (N procedures)` and writes `apps/myapp.msbc` (MSBC version 2,
+which needs API 1.9; `--msbc1` writes the old format for older firmware). It fails on
 compile errors, on an `api` lower than the code needs, and warns about **reserved** (not
 implemented) procedures: treat that warning as an error.
 
@@ -243,7 +244,7 @@ Branch, commit the sources (not the build outputs), push, open a PR ([section 18
 MiniScheme is a small Scheme compiled to bytecode on the PC. It is **not** R7RS: many common
 procedures do not exist on the device. The authoritative list is the API reference
 (`minischeme-esp32/docs/api/v1.x.0.md`, "status" column: `stable` exists, `reserved` does not).
-The table below was checked on the simulator (firmware API 1.8).
+The table below was checked on the simulator (firmware API 1.8 / 1.9).
 
 ### 5.1 What exists
 
@@ -647,7 +648,7 @@ id = myapp                 ; = the folder and file names
 name = 我的应用             ; shown to the user
 description = 一句话说明
 version = 1                ; bump it on every change you want devices to install
-api = 1.8                  ; the firmware API it needs (the build checks and fills it in)
+api = 1.9                  ; the firmware API it needs (1.9: the MSBC 2 image format; the build checks it)
 pages = 2
 page_ids = main, detail    ; English page names (combined apps address pages by them)
 ; storage_kb = 512         ; only if the app stores much data: replaces the 256 KB folder quota
@@ -910,41 +911,45 @@ Reported as "leaking". Findings (2026-10-23, board COM42 and the simulator):
 
 ### 16.7 Keeping the image small
 
-An app's image (`apps/<id>.msbc`) is its bytecode, then its gzipped web page and metadata. On
-the board the bytecode is built into an App ROM slot (256 KB; the image there is about 1.2x the
-bytecode part) and run from flash, so size costs flash, download time and the app folder's
-quota (256 KB by default, data included), not RAM. Measure with:
+An app's image (`apps/<id>.msbc`) is its bytecode (MSBC), then its gzipped web page and
+metadata. On the board the bytecode is built into an App ROM slot (256 KB) and run from flash,
+so size costs flash, download time and the app folder's quota (256 KB by default, data
+included), not RAM. Measure with:
 
 ```bash
 python tools/msbc_stats.py apps/myapp.msbc
 ```
 
-What an image is made of (the medicine app, 126.6 KB, 2026-10):
+**The build already compacts the format.** Since API 1.9 `build_apps.py` writes MSBC version 2
+by default: each symbol name is stored once in a table and referred to by a small index, and
+function headers are variable-length. That made every app about 23% smaller (all apps
+1,060 KB → 817 KB; medicine 126.6 → 97.5 KB) without touching the code. It is why every
+app declares `api = 1.9`. Only for firmware older than API 1.9: `python tools/build_apps.py
+--msbc1 <app>` writes the old format (and the app can then declare its real, lower API).
+
+What an image is made of (the medicine app, 97.5 KB):
 
 | Part | Size | Note |
 |---|---|---|
-| Shared framework | 52 KB | gui.scm 16, infopages 12, applib 21, appweb 3 (with a web page): in every app |
-| The app's own code | 59 KB | 1,502 lines |
+| Shared framework | about 40 KB | gui.scm, infopages, applib, appweb (with a web page): in every app |
+| The app's own code | about 42 KB | 1,502 lines |
 | web.html, gzipped | 13 KB | 30 KB before compression |
 
-By content the bytecode part is 46% instructions and **40% symbol names**: every function
-(each `define`d procedure and each `lambda`, named `let` included) keeps its own list of the
-global names it uses, stored in full (`string-append` costs 16 bytes in every function that
-calls it). Medicine has 542 functions and 4,110 such references to 804 names. Each function
-also has a 13-byte header. So:
+By content the bytecode part is 62% instructions, 24% symbol names and references, 8% string
+constants and 4% function headers (542 functions). What you can still do:
 
-- **Short prefixes**: `med-` rather than `medicine-`; the prefix is stored with every reference.
-- **Fewer, fuller functions**: a helper called from one place, or a `(lambda (x) ...)` written
-  inline in every `map` / `filter`, is a function of its own with its own name list. Reuse
-  one named helper instead of repeating similar lambdas.
-- **Repeated literals**: a string literal is stored in each function that uses it. Text used
-  in several places goes into one top-level `define`.
+- **Fewer, fuller functions**: every function (each `define`d procedure, each `lambda`, named
+  `let` included) has a header and refers to every global it uses (2-3 bytes each, per
+  function). A helper called from one place, or the same `(lambda (x) ...)` written inline in
+  many `map` / `filter` calls, costs more than one named helper reused.
+- **Repeated literals**: a string literal is stored in each function that uses it. Text used in
+  several places goes into one top-level `define`.
 - **No embedded fonts** (`use-font` without `'system`): a font subset can be tens of KB.
 - **The web page**: rely on `appweb.css` / `appweb.js`; no base64 images, no copied libraries.
-- **Data**: large constant tables cost flash and download size; fetch them from the app
-  server, or keep them in the app's folder, when they can change.
-- The build prints each image's size; keep the bytecode part under about 150 KB so the App ROM
-  image stays well inside its 256 KB slot.
+- **Data**: large constant tables cost flash and download size; fetch them from the app server,
+  or keep them in the app's folder, when they can change.
+- Keep the App ROM image (about 1.5x the version 2 bytecode part; the build and the board's boot
+  log print it) well inside its 256 KB slot.
 
 ---
 
