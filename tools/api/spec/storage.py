@@ -85,6 +85,41 @@ APIS = [
 ''',
         where=DEVICE, check=False,
     ),
+    api('fs-download', 'fs',
+        sig='(fs-download url path)',
+        desc='Download a file from the network into the app\'s folder, in the background (an image for gui-image, '
+             'for example); one download at a time.',
+        returns='#t when the download is queued; #f while another download is still running (try again after it, '
+                'see fs-download-status). Errors: url not http:// or https://, path outside the app\'s folder '
+                '(the same rule as fs-write), the app\'s storage full.',
+        example='''
+;; a picture from the app server into the app's folder, then drawn
+(fs-download (string-append (app-url "/app/myapp/pic?id=7")) "cache/7.jpg")   ; => #t
+;; later, in app-step or app-tick-proc:
+(if (eq? (cdr (assq 'state (fs-download-status))) 'done)
+    (gui-invalidate 0 0 320 480))   ; render then draws (gui-image x y "cache/7.jpg")
+''',
+        where=DEVICE, check=False, since='1.10.0',
+        notes='The board fetches over plain HTTP like the JSON feed (the device headers go to configured servers; an '
+              'https:// URL goes through the protocol converter), after the feed\'s current request. The body is '
+              'written to path.part and replaces path only when complete: a failed download leaves the old file. '
+              'At most 256 KB, and no more than the app\'s storage quota has left. gui-image draws baseline JPEG '
+              'only: let the app server convert pictures (size and format) before the board downloads them. In '
+              'the WebREPL simulator the page fetches the file through server.py.',
+    ),
+    api('fs-download-status', 'fs',
+        sig='(fs-download-status)',
+        desc='The state of the last fs-download: (state path bytes error seq) as an alist.',
+        returns='An alist: (state . s) with s one of idle, queued, running, done, error; (path . "the path given"); '
+                '(bytes . n) written when done; (error . "message") when it failed ("" otherwise); (seq . k), which '
+                'grows by one each time a download ends (done or error), so a change means a new outcome. '
+                'Never an error.',
+        example='''
+(define (download-state) (cdr (assq 'state (fs-download-status))))
+(download-state)   ; => idle
+''',
+        where=DEVICE, check=False, since='1.10.0',
+    ),
     api('fs-rename', 'fs',
         sig='(fs-rename from to)',
         desc='Rename or move a file; an existing target is not replaced.',

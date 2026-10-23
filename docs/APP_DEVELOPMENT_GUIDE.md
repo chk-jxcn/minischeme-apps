@@ -636,6 +636,62 @@ To send data to the server (uploads, sync), use the feed for one request and han
 - See `apps/medicine/medicine.scm` (`sync-start!`, `sync-step!`, `sync-failed!`) for a complete
   implementation with retries and upload queues.
 
+### 11.7 Pictures from the network (API 1.10)
+
+The board draws only **baseline JPEG files in the app's own folder** (`gui-image`). To show a
+picture from the web (a cover, an avatar, a map):
+
+1. **The app server prepares it.** Add an endpoint that fetches the original, makes it small and
+   baseline, and answers with the JPEG bytes instead of a JSON document. `handle_app_query` may
+   return `(status, content_type, body)` itself:
+
+   ```python
+   # proxy/endpoints.py, in handle_app_query: a picture, not a JSON document
+   elif path == "/app/myapp/pic":
+       from .myapp import picture
+       return picture(qs.get("id", [""])[0])     # (200, "image/jpeg", jpeg) or (404, "text/plain", b"...")
+   ```
+
+   ```python
+   # proxy/myapp.py: Pillow is in minischeme-proxy's requirements
+   import io
+   from PIL import Image
+
+   def board_jpeg(raw: bytes, width: int, height: int) -> bytes:
+       im = Image.open(io.BytesIO(raw)).convert("RGB")
+       im.thumbnail((width, height))              # keeps the aspect ratio
+       out = io.BytesIO()
+       im.save(out, "JPEG", quality=70, progressive=False, optimize=True)
+       return out.getvalue()
+   ```
+
+   - Make it exactly as big as the box it fills on screen (a 96 x 54 picture is 2-4 KB): the
+     board decodes every pixel it gets.
+   - Cache converted pictures (they rarely change), and accept only what the list document
+     named (an id), never any URL: the endpoint must not become an open proxy.
+   - Some sites refuse requests without a browser-like `User-Agent` or a `Referer`: send what
+     they need, and write a test that converts a sample picture without network.
+2. **The document names the pictures.** Each list item carries what the app needs to build the
+   picture's URL (an id), e.g. `(app-url (string-append "/app/myapp/pic?id=" id))`.
+3. **The app downloads them, one at a time.** `(fs-download url path)` queues a download into the
+   app's folder and returns `#t` (`#f` while another one runs). `(fs-download-status)` says when
+   it is `done` or failed (`error`); its `seq` grows by one per outcome. Keep a list of the
+   pictures the page needs, start the next one from `app-step` (or `app-tick-proc`) when the last
+   ended, and invalidate the body when one is done.
+4. **Render draws only what is there.** Keep which pictures are ready in a global (set when a
+   download is done, after `(image-info path)` returned a list once); render draws
+   `(gui-image x y path)` for those and a placeholder box (`theme-card-hdr`) for the others. No
+   file access in render.
+5. **Keep the folder small.** Pictures count against the app's storage quota (256 KB by
+   default, the image included). Reuse a fixed set of names (one per place on the screen,
+   overwritten when the page changes, marked not ready until the new one is done) or delete the
+   files a new document no longer names (`fs-list`, `fs-remove`). A download replaces a file
+   only when complete; a failed one leaves the old file.
+
+- Downloads wait for the JSON feed's current request: keep the picture endpoint fast (cached).
+- The simulator fetches through server.py: the picture endpoint must be in minischeme-webrepl's
+  `proxy/` copy too (11.4 step 4). Test there before the board.
+
 ---
 
 ## 12. Settings and storage
@@ -673,7 +729,8 @@ carousel_seconds =
 
 - Paths are relative to the app's folder (`"data.txt"` = `/spiffs/apps/<id>/data.txt`). The
   sandbox refuses absolute paths outside it and `..`.
-- `fs-read`, `fs-write` (whole file), `fs-exists?`, `fs-remove`, `fs-list`. `fs-append`,
+- `fs-read`, `fs-write` (whole file), `fs-exists?`, `fs-remove`, `fs-list`; `fs-download` (a
+  file from the network, API 1.10: section 11.7). `fs-append`,
   `fs-rename`, `fs-size` and the `kv-*` store are **reserved** (not implemented).
 - Keep files small and line-oriented; split growing data into several files (medicine keeps
   one log file per 16 days) so a change rewrites one small file.
