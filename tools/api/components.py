@@ -49,6 +49,7 @@ COMPONENTS = {
     'font':     ('Display', 'Fonts', 'Font slots: loading bitmap fonts and choosing them.'),
     'fontrom':  ('Display', 'Font ROM', 'The system font ROM partition, read in place.'),
     'lunar':    ('Display', 'Lunar calendar', 'Chinese lunar dates computed on the device.'),
+    'theme':    ('Display', 'Color schemes', 'The system color scheme file the app framework reads (gui.scm).'),
     # Network
     'wifi':     ('Network', 'WiFi', 'Station connection and status.'),
     'json-feed':('Network', 'JSON feed', 'Background HTTP polling of a JSON document, parsed into compact rows.'),

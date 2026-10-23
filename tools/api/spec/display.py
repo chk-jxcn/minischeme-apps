@@ -999,4 +999,20 @@ f  ; => 0
 (lunar-date-string 2023 3 22)  ; => "农历闰二月初一"
 ''',
     ),
+    # ---- theme ---------------------------------------------------------------
+    api('theme-css', 'theme',
+        sig='(theme-css)',
+        desc='The system color scheme file /spiffs/theme.css as a string; any app may read it (gui.scm resolves color aliases with it).',
+        returns='A string of the file (binary-safe), or #f when there is none or it is over 16 KB. Never fails. '
+                'Apps write only their own folder: the file is written by the device page or the system settings.',
+        since='1.8.0',
+        example='''
+(fs-write "/spiffs/theme.css" "night { titlebar_bg: #152030; }")
+(theme-css) ; => "night { titlebar_bg: #152030; }"
+''',
+        notes='The format is CSS-like: blocks named after a scheme (day, night, or a name of your own; * for every '
+              'scheme) holding alias: value; pairs, a value being #rgb, #rrggbb, rgb(r, g, b) or another alias; '
+              '/* comments */. An app may keep its own theme.css in its folder (read with fs-read), which wins over '
+              'this file. The cascade, the built-in schemes and the day/night switch are in docs/api/applib.md.',
+    ),
 ]

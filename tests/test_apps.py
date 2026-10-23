@@ -139,7 +139,7 @@ class TestMedicine(unittest.TestCase):
     def test_needs_api_1_7(self):
         with open(os.path.join(ROOT, 'apps', 'medicine.msbc'), 'rb') as f:
             meta = ini(build_apps.read_meta(f.read()))
-        self.assertEqual(meta['app'].get('api'), '1.7')
+        self.assertGreaterEqual(tuple(int(x) for x in meta['app'].get('api', '0').split('.')), (1, 7))   # scheduled launches; 1.8: color schemes
 
 
 if __name__ == '__main__':

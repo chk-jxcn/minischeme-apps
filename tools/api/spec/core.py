@@ -668,4 +668,14 @@ high-score                           ; => 120
 (integer? (cdr (assq 'minor-gcs (vm-stats))))  ; => #t
 ''',
     ),
+    api('vm-stack-trace', 'vm',
+        sig='(vm-stack-trace [on?])',
+        desc='Query or enable/disable stack trace capture upon errors (enabled by default in WASM, disabled on hardware).',
+        returns='A boolean indicating whether stack trace capture is enabled.',
+        example='''
+(vm-stack-trace)                      ; => #f
+(vm-stack-trace #t)                   ; => #t
+(vm-stack-trace #f)                   ; => #f
+''',
+    ),
 ]

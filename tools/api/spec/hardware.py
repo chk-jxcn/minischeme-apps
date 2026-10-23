@@ -456,4 +456,31 @@ APIS = [
 ''',
         status=RESERVED,
     ),
+    api('backlight-offset', 'backlight',
+        sig='(backlight-offset [offset])',
+        desc='Get or set backlight brightness offset (-10 to 10) for automatic backlight calculation.',
+        returns='Current offset integer (-10 to 10).',
+        example='''
+(backlight-offset 0)
+(backlight-offset) ; => 0
+''',
+    ),
+    api('backlight-min', 'backlight',
+        sig='(backlight-min [val])',
+        desc='Get or set minimum backlight brightness level (0 to 255).',
+        returns='Current minimum backlight integer (0 to 255).',
+        example='''
+(backlight-min 30)
+(backlight-min) ; => 30
+''',
+    ),
+    api('backlight-max', 'backlight',
+        sig='(backlight-max [val])',
+        desc='Get or set maximum backlight brightness level (0 to 255).',
+        returns='Current maximum backlight integer (0 to 255).',
+        example='''
+(backlight-max 255)
+(backlight-max) ; => 255
+''',
+    ),
 ]
