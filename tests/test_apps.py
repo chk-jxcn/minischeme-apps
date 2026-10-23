@@ -142,5 +142,24 @@ class TestMedicine(unittest.TestCase):
         self.assertEqual(meta['app'].get('api'), '1.7')
 
 
+class TestTemplate(unittest.TestCase):
+    """docs/app-template/hello, which the guide tells developers to copy, still builds."""
+    DIR = os.path.join('docs', 'app-template', 'hello')
+
+    def test_compiles_with_the_libraries(self):
+        build_apps.ensure_compiler()
+        code = build_apps.compile_sources(build_apps.APP_LIB + [build_apps.APP_WEB_LIB,
+                                                                os.path.join(self.DIR, 'hello.scm')])
+        self.assertGreater(len(code), 1000)
+
+    def test_page_and_metadata(self):
+        html = read(os.path.join(ROOT, self.DIR, 'web.html'))
+        self.assertIn(build_apps.APP_WEB_MARK, html)
+        self.assertIsNone(re.search(r'''fetch\(\s*['"`]/api/''', html))
+        meta = ini(read(os.path.join(ROOT, self.DIR, 'meta.ini')))
+        self.assertEqual(meta['app']['id'], 'hello')
+        self.assertEqual(len(meta['app']['page_ids'].split(',')), int(meta['app']['pages']))
+
+
 if __name__ == '__main__':
     unittest.main()

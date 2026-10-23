@@ -3,9 +3,11 @@
 This repository hosts official applications, shared component libraries, and build tools for the MiniScheme desktop info card ecosystem.
 
 ## Documentation for Developers & AI Agents
-- 📖 **[Application Development Guide](docs/APP_DEVELOPMENT_GUIDE.md)**: Step-by-step instructions for creating new apps.
-- 🔗 **[Firmware API Specification](../../minischeme-esp32/docs/api/README.md)**: Full runtime reference for hardware, graphics, and system calls.
-- 🔗 **[Standard App Library (applib)](../../minischeme-esp32/docs/api/applib.md)**: Common widgets, cards, and formatting utilities.
+- 📖 **[Application Development Guide](docs/APP_DEVELOPMENT_GUIDE.md)**: the complete workflow (language, layout, colors, fonts, servers, buttons, web pages, simulator, board debugging, memory analysis, tests, pull requests). Start here.
+- 🧩 **[App template](docs/app-template/hello)**: a working two-page app to copy.
+- 🔧 **`tools/board.py`**: install, run, screenshot and watch the memory of an app on a real board.
+- 🔗 **[Firmware API Specification](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/README.md)**: Full runtime reference for hardware, graphics, and system calls.
+- 🔗 **[Standard App Library (applib)](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/applib.md)**: The app framework: pages, the items model, helpers, web pages, the sandbox.
 
 ## Bundled Applications
 | App ID | Name | Description |
@@ -38,11 +40,12 @@ converter_url =      ; empty: config.ini [app] https_proxy
 carousel =           ; empty: config.ini [app] carousel
 carousel_seconds =   ; empty: config.ini [app] carousel_seconds
 ```
-An app's own server may have an app service password (`proxy_url_password`, edited on the
-configuration pages next to the address; apps cannot read it): with one, the device registers an
-encrypted channel there; without one it uses plain HTTP with the device id in the
-`X-MiniScheme-Device` header, or (`proxy_url_relay = 1`) goes through the system converter.
-See applib.md in minischeme-esp32.
+The device talks to app servers over plain HTTP. Every request carries the device id in the
+`X-MiniScheme-Device` header and, when the server has an app service password
+(`proxy_url_password`, edited on the configuration pages next to the address; apps cannot read
+it), the password base64-encoded in `X-MiniScheme-Password`: the server registers the device at
+its first request and refuses another password later. Without a password an app's own server
+may be reached through the system converter instead (`proxy_url_relay = 1`).
 
 Defaults that look like credentials (keys named like token/key/password, long tokens, private
 addresses) are packaged empty by the build. Market data shown by the apps comes from the proxy

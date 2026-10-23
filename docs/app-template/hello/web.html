@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>示例应用</title>
+<!-- appweb -->
+</head>
+<body>
+<main>
+<section>
+<h2>计数</h2>
+<div class="item"><span id="count">读取中...</span></div>
+<button onclick="attempt(reset)">清零</button>
+</section>
+</main>
+<script>
+async function load() {
+  const r = await appCall('get', {});
+  $('count').textContent = r.count;
+}
+
+async function reset() {
+  const r = await appCall('reset', {});
+  $('count').textContent = r.count;
+  say('已清零', 'ok');
+}
+
+attempt(load);
+</script>
+</body>
+</html>
