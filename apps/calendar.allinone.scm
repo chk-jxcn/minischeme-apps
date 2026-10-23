@@ -1390,6 +1390,16 @@
 (define (app-render-footer)
   (if (app-local? app-page-index) (app-render-local-footer) (app-render-feed-footer)))
 
+;; What the footer shows now, as one string: app-tick redraws the footer only
+;; when it changed (a redraw also makes the screen be recorded again, which
+;; every scrolling title would pay for)
+(define app-footer-shown #f)
+(define (app-footer-key)
+  (if (app-local? app-page-index)
+      app-footer-text
+      (let ((parts (app-feed-footer-parts)))
+        (string-append (vector-ref parts 0) "|" (vector-ref parts 1) (if (vector-ref parts 2) "!" "")))))
+
 ;; "http://host:port" shown as "host:port"
 (define (app-server-name s)
   (cond ((not (string? s)) "服务器")
@@ -1400,7 +1410,16 @@
 (define (app-render-feed-footer)
   (let* ((y (- (gui-height) FTR-H))
          (w (scr-w))
-         (url (vector-ref app-urls app-page-index))
+         (parts (app-feed-footer-parts))
+         (text (vector-ref parts 0))
+         (right (vector-ref parts 1)))
+    (gui-rect 0 y w FTR-H theme-card-hdr #t)
+    (txt-right (- w 8) (+ y 3) right theme-text-muted)
+    (txt-fit 8 (+ y 3) (- w 24 (txt-w right)) text (if (vector-ref parts 2) theme-warning theme-text-muted))))
+
+;; #(text right failed?) of the shown page's feed footer
+(define (app-feed-footer-parts)
+  (let* ((url (vector-ref app-urls app-page-index))
          (entry (app-cache-entry url))
          (upd (and entry (items-find (vector-ref entry 1) "upd")))  ; the server's data time
          ;; the time the server gives for its data ({"t": "upd"}), else when
@@ -1432,9 +1451,7 @@
                     (string-append (fixed->str (quotient (+ (app-status 'bytes fs) 51) 102) 1) "KB "
                                    (int->str ms) "ms")
                     "")))
-    (gui-rect 0 y w FTR-H theme-card-hdr #t)
-    (txt-right (- w 8) (+ y 3) right theme-text-muted)
-    (txt-fit 8 (+ y 3) (- w 24 (txt-w right)) text (if failed theme-warning theme-text-muted))))
+    (vector text right failed)))
 
 (define (app-render-waiting)
   (let ((cx (quotient (scr-w) 2)) (y (- (quotient (gui-height) 2) 60)))
@@ -1550,8 +1567,12 @@
         (begin
           (set! app-time hm)
           (gui-invalidate 0 0 (scr-w) HDR-H)))
-    (if (= (remainder tick 2) 0)
-        (gui-invalidate 0 (- (gui-height) FTR-H) (scr-w) FTR-H))
+    (if (= (remainder tick 2) 0)   ; the fetch's state, shown only when it changed
+        (let ((key (app-footer-key)))
+          (if (not (equal? key app-footer-shown))
+              (begin
+                (set! app-footer-shown key)
+                (gui-invalidate 0 (- (gui-height) FTR-H) (scr-w) FTR-H)))))
     (if (and app-carousel (not (info-active?)) (not app-carousel-paused)) ; also stops on the hardware pages
         (app-carousel-tick!))
     (if (> (app-npages) 0) (app-follow-page!))   ; the shown page's cached data became due
