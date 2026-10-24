@@ -64,7 +64,7 @@ All outputs stay inside this repository: `dist/` (images, all-in-one sources, `i
 `app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
 
 The build checks each app's API requirement: it fails when the code needs a newer API than
-`meta.ini` declares or than the firmware provides (`tools/api`, now API 1.11.0), or uses an
+`meta.ini` declares or than the firmware provides (`tools/api`, now API 1.12.0), or uses an
 extension not declared there.
 
 A combined app (`apps/<id>/meta.ini` with `[combo] members = a, b`) is assembled from its

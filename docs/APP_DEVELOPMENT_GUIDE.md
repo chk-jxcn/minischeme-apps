@@ -765,11 +765,14 @@ picture from the web (a cover, an avatar, a map):
      they need, and write a test that converts a sample picture without network.
 2. **The document names the pictures.** Each list item carries what the app needs to build the
    picture's URL (an id), e.g. `(app-url (string-append "/app/myapp/pic?id=" id))`.
-3. **The app downloads them, one at a time.** `(fs-download url path)` queues a download into the
-   app's folder and returns `#t` (`#f` while another one runs). `(fs-download-status)` says when
-   it is `done` or failed (`error`); its `seq` grows by one per outcome. Keep a list of the
-   pictures the page needs, start the next one from `app-step` (or `app-tick-proc`) when the last
-   ended, and invalidate the body when one is done.
+3. **The app downloads them, one at a time.** `(fs-download url path on-done)` queues a download
+   into the app's folder and returns `#t` (`#f` while another one runs). When it ends the
+   firmware calls `(on-done ok path)` from the main loop (API 1.12): `ok` is `#t` when the file
+   is complete, `#f` when it failed (the message is in `(fs-download-status)`). Keep a list of
+   the pictures the page needs; in on-done mark the picture ready, invalidate the body and start
+   the next download at once. Firmware before 1.12 ignores on-done: to run there too, also check
+   `(fs-download-status)` (`done` / `error`; its `seq` grows by one per outcome) from
+   `app-tick-proc`, which only notices once a second (five pictures then take 5..10 s).
 4. **Render draws only what is there.** Keep which pictures are ready in a global (set when a
    download is done, after `(image-info path)` returned a list once); render draws
    `(gui-image x y path)` for those and a placeholder box (`theme-card-hdr`) for the others. No
@@ -829,7 +832,7 @@ carousel_seconds =
 - Paths are relative to the app's folder (`"data.txt"` = `/spiffs/apps/<id>/data.txt`). The
   sandbox refuses absolute paths outside it and `..`.
 - `fs-read`, `fs-write` (whole file), `fs-exists?`, `fs-remove`, `fs-list`; `fs-download` (a
-  file from the network, API 1.10: section 11.7). `fs-append`,
+  file from the network, API 1.10, on-done 1.12: section 11.7). `fs-append`,
   `fs-rename`, `fs-size` and the `kv-*` store are **reserved** (not implemented).
 - Keep files small and line-oriented; split growing data into several files (medicine keeps
   one log file per 16 days) so a change rewrites one small file.

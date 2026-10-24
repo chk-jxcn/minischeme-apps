@@ -86,18 +86,17 @@ APIS = [
         where=DEVICE, check=False,
     ),
     api('fs-download', 'fs',
-        sig='(fs-download url path)',
+        sig='(fs-download url path [on-done])',
         desc='Download a file from the network into the app\'s folder, in the background (an image for gui-image, '
-             'for example); one download at a time.',
+             'for example); one download at a time. on-done, if given, is called as (on-done ok path) when it ends.',
         returns='#t when the download is queued; #f while another download is still running (try again after it, '
                 'see fs-download-status). Errors: url not http:// or https://, path outside the app\'s folder '
-                '(the same rule as fs-write), the app\'s storage full.',
+                '(the same rule as fs-write), the app\'s storage full, on-done not a procedure.',
         example='''
 ;; a picture from the app server into the app's folder, then drawn
-(fs-download (string-append (app-url "/app/myapp/pic?id=7")) "cache/7.jpg")   ; => #t
-;; later, in app-step or app-tick-proc:
-(if (eq? (cdr (assq 'state (fs-download-status))) 'done)
-    (gui-invalidate 0 0 320 480))   ; render then draws (gui-image x y "cache/7.jpg")
+(define (cover-done ok path)        ; ok: #t when the file is complete
+  (if ok (gui-invalidate 0 0 320 480)))   ; render then draws (gui-image x y "cache/7.jpg")
+(fs-download (app-url "/app/myapp/pic?id=7") "cache/7.jpg" cover-done)   ; => #t
 ''',
         where=DEVICE, check=False, since='1.10.0',
         notes='The board fetches over plain HTTP like the JSON feed (the device headers go to configured servers; an '
@@ -105,7 +104,11 @@ APIS = [
               'written to path.part and replaces path only when complete: a failed download leaves the old file. '
               'At most 256 KB, and no more than the app\'s storage quota has left. gui-image draws baseline JPEG '
               'only: let the app server convert pictures (size and format) before the board downloads them. In '
-              'the WebREPL simulator the page fetches the file through server.py.',
+              'the WebREPL simulator the page fetches the file through server.py. on-done (since 1.12.0) is '
+              'called by the main loop, between two app steps, as soon as the download is done (ok #t) or failed '
+              '(ok #f; the message is in fs-download-status); it may start the next download at once. It is '
+              'called once, and not at all when another app runs by then. Firmware before 1.12 ignores on-done: '
+              'an app that also runs there checks fs-download-status from app-tick-proc as well.',
     ),
     api('fs-download-status', 'fs',
         sig='(fs-download-status)',
