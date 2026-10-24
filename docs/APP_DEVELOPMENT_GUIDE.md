@@ -397,15 +397,21 @@ screens (20 videos, 5 per screen) is not several applib pages:
   list goes on to the next list), and keep a per-list setting for how many entries it shows
   and whether it has screens at all (no screens: its first N entries only).
 - The carousel turns applib pages only: with one page it does nothing. If screens or lists
-  should turn by themselves, do it in `app-tick-proc` (every N seconds, N a setting, 0 =
-  off) and restart the count after a key press.
+  should turn by themselves, do it in `app-tick-proc` (a count of seconds, restarted after a
+  key press) and show it as the carousel does: draw the page yourself with `app-header-proc`
+  (`(items x w)`, the header left of the clock) and put applib's countdown bar
+  (`carousel-bar-w`, `carousel-px`, `CAROUSEL-BAR-H`, `CAROUSEL-BAR-COLOR`) and a `1/10`
+  badge of the position in the turning at its right end. `app-mid-press` (3.5 s) is free
+  for stopping and starting it.
 - Each list costs a document (fetch it when the list shows, or keep a small cached copy) and
   its pictures (section 11.7): cap the number of lists and of entries per list.
 - Pictures of the next screen can be downloaded while the user reads the current one; keep
   the ones already shown, so going back shows them at once (section 11.7).
 - A complete example: `apps/bilibili` (lists the user adds, removes and orders on the web
-  page, each with or without screens; the header names the list and both positions; one
-  document at a time for the list on display; an optional timer that turns lists).
+  page, each with or without screens and its own seconds per screen; one document at a time
+  for the list on display; screens turn by themselves through the list on screen or through
+  every list, with the countdown and the position in the header; a mid press stops and
+  starts the turning, a short or long press while it runs switches the two cycles).
 
 ---
 
