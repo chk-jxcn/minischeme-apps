@@ -1943,6 +1943,18 @@
                   (if (bilibili-want? aid w h) (set! bilibili-dl-queue (append bilibili-dl-queue (list (list aid w h)))))))
             (loop (+ k 1)))))))
 
+;; Redraw only the row whose cover arrived: the whole body would decode every cover again, and the
+;; next download's on-done waits for that redraw
+(define (bilibili-invalidate-cover! aid)
+  (let* ((ps (bilibili-effective-page-size bilibili-current))
+         (base (* (vector-ref bilibili-screen bilibili-current) ps))
+         (total (vector-length bilibili-items)))
+    (let loop ((k 0))
+      (if (and (< k ps) (< (+ base k) total))
+          (if (equal? (it-b (vector-ref bilibili-items (+ base k))) aid)
+              (gui-invalidate 0 (+ (body-top) (* k bilibili-row-h)) (scr-w) bilibili-row-h)
+              (loop (+ k 1)))))))
+
 ;; One fs-download in flight at a time; called when a download ends (its on-done, below) and
 ;; every tick (the fallback on firmware before API 1.12, which ignores on-done). An
 ;; in-flight download cannot be cancelled when the queue is reset above; it still finishes (one
@@ -1954,8 +1966,8 @@
                (set! bilibili-ready (cons (bilibili-pic-path (car bilibili-dl-current) (cadr bilibili-dl-current)
                                                              (caddr bilibili-dl-current))
                                          bilibili-ready))
-               (set! bilibili-dl-current #f)
-               (app-invalidate-body))
+               (bilibili-invalidate-cover! (car bilibili-dl-current))
+               (set! bilibili-dl-current #f))
               ((eq? state 'error) (set! bilibili-dl-current #f))
               (else #f)))   ; idle, queued or running: wait
       (if (pair? bilibili-dl-queue)
