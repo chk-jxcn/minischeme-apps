@@ -403,6 +403,9 @@ screens (20 videos, 5 per screen) is not several applib pages:
   its pictures (section 11.7): cap the number of lists and of entries per list.
 - Pictures of the next screen can be downloaded while the user reads the current one; keep
   the ones already shown, so going back shows them at once (section 11.7).
+- A complete example: `apps/bilibili` (lists the user adds, removes and orders on the web
+  page, each with or without screens; the header names the list and both positions; one
+  document at a time for the list on display; an optional timer that turns lists).
 
 ---
 
@@ -783,6 +786,10 @@ picture from the web (a cover, an avatar, a map):
   must not need them. The page learns PROXY from an `app-web` answer (`(app-proxy)`).
 - The simulator fetches through server.py: the picture endpoint must be in minischeme-webrepl's
   `proxy/` copy too (11.4 step 4). Test there before the board.
+- A complete example: `apps/bilibili` with minischeme-proxy `proxy/bilibili.py` (`picture`:
+  only ids from a recent list, resized to the box; the app's download queue is the screen on
+  display, cleared when the screen changes; covers named by id and size, kept while a list
+  names them).
 
 ---
 
@@ -1221,8 +1228,8 @@ For reference; contributors stop at the PR.
 |---|---|
 | Framework reference (pages, items, helpers, pitfalls, web pages, sandbox) | [applib.md](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/applib.md) |
 | Every device procedure, with status and examples | [docs/api](https://github.com/chk-jxcn/minischeme-esp32/tree/main/docs/api) (`README.md`, `v1.x.0.md`) |
-| Example apps | tide (charts, local fallback), medicine (schedule, sync, web page, files), memo (web page), calendar (live rows), weather (icons, several pages) |
-| App server endpoints | minischeme-proxy `proxy/endpoints.py`, `proxy/tide.py`, `proxy/medicine.py` |
+| Example apps | bilibili (several lists with their own screens, pictures from the network, scrolling titles, a settings web page; written by an agent from this guide), tide (charts, local fallback), medicine (schedule, sync, web page, files), memo (web page), calendar (live rows), weather (icons, several pages) |
+| App server endpoints | minischeme-proxy `proxy/endpoints.py`, `proxy/tide.py`, `proxy/medicine.py`, `proxy/bilibili.py` (pictures, signed upstream APIs), `proxy/news.py` (several sources, last list kept on failure) |
 | Simulator | minischeme-webrepl `tools/sim.py --help`, `tests/` |
 
 This guide quotes facts from the other repositories: API procedures and limits, applib

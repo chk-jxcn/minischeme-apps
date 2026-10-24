@@ -45,7 +45,7 @@ APPS = {
 }
 
 for _app in ('weather', 'news', 'stocks', 'usage', 'calendar', 'memo', 'futures', 'crypto', 'wxpusher', 'notifier', 'album',
-             'tide', 'medicine'):
+             'tide', 'medicine', 'bilibili'):
     if os.path.exists(os.path.join(ROOT, 'apps', _app, f'{_app}.scm')):
         _web = [APP_WEB_LIB] if os.path.exists(os.path.join(ROOT, 'apps', _app, 'web.html')) else []
         APPS[_app] = (APP_LIB + _web + [f'apps/{_app}/{_app}.scm'], [], None)

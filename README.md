@@ -17,7 +17,8 @@ This repository hosts official applications, shared component libraries, and bui
 | `stocks` | 股票行情 (Stocks) | Real-time equity market tracker and candlestick trend charts |
 | `crypto` | 加密货币 (Crypto) | Cryptocurrency market depth and price tickers |
 | `futures` | 期货行情 (Futures) | Commodity futures tracking |
-| `news` | 简讯热点 (News) | Multi-channel news summaries and headlines |
+| `news` | 热点新闻 (News) | Baidu's realtime, livelihood, finance and sports hot lists and the Zhihu or Toutiao hot list, live from the app proxy |
+| `bilibili` | B站热门视频 (Bilibili) | Several Bilibili lists at once (popular, weekly, must-watch, rankings by partition, an UP主's newest videos), each with its own count and screens, edited on the app's web page; covers downloaded with fs-download; needs API 1.11 |
 | `notifier` | 消息中心 (Notifier) | Push notification receiver and history viewer |
 | `memo` | 便签备忘 (Memo) | Notes, to-do lists, and reminders |
 | `album` | 电子相册 (Album) | Bitmapped photo gallery display |
