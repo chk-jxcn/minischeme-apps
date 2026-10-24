@@ -18,6 +18,24 @@
   "hash": "a8ce3e23"
  },
  {
+  "id": "bilibili",
+  "name": "B站热门视频",
+  "description": "多个榜单同时显示（综合热门/每周必看/入站必刷/排行榜/UP主最新视频），可在应用网页里增删排序，每个榜单单独设置条数和翻页",
+  "version": "1",
+  "api": "1.11",
+  "extensions": "",
+  "kind": "app",
+  "pages": 1,
+  "page_ids": [
+   "hot"
+  ],
+  "web": true,
+  "file": "bilibili.msbc",
+  "size": 56026,
+  "scm": "bilibili.allinone.scm",
+  "hash": "8b359388"
+ },
+ {
   "id": "calendar",
   "name": "万年历",
   "description": "时间、世界时间、日期、农历、节气、宜忌和倒计日；当月日历（含农历）；月相与太阳、月亮的方位和高度",
