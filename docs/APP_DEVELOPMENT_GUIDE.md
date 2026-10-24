@@ -782,6 +782,13 @@ picture from the web (a cover, an avatar, a map):
    overwritten when the page changes, marked not ready until the new one is done) or delete the
    files a new document no longer names (`fs-list`, `fs-remove`). A download replaces a file
    only when complete; a failed one leaves the old file.
+   Every download is a flash write: when the user (or a timer) switches back and forth between
+   lists or pages, do not delete their pictures on each switch only to download them again.
+   Keep them in a least-recently-used cache instead (delete the pictures shown longest ago once
+   there are more than a fixed number). On the board's LittleFS every file over 256 bytes takes
+   a whole 4 KB block (about 5 KB with its metadata), whatever its size: count blocks, not bytes,
+   and leave the file system some room (`(fs-info)`, which takes about 0.25 s on the board: call
+   it now and then, not per picture).
 
 - Downloads wait for the JSON feed's current request: keep the picture endpoint fast (cached).
 - The same endpoint can serve the app's web page (section 13): the browser loads
@@ -791,8 +798,9 @@ picture from the web (a cover, an avatar, a map):
   `proxy/` copy too (11.4 step 4). Test there before the board.
 - A complete example: `apps/bilibili` with minischeme-proxy `proxy/bilibili.py` (`picture`:
   only ids from a recent list, resized to the box; the app's download queue is the screen on
-  display, cleared when the screen changes; covers named by id and size, kept while a list
-  names them).
+  display, cleared when the screen changes; covers named by id and size, kept in one LRU cache
+  for all lists: twice as many as the lists show together, at most 100, never leaving the file
+  system less than 128 KB free; covers on disk join the cache after a restart).
 
 ---
 
