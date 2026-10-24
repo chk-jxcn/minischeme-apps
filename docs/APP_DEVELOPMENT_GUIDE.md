@@ -411,7 +411,8 @@ screens (20 videos, 5 per screen) is not several applib pages:
   page, each with or without screens and its own seconds per screen; one document at a time
   for the list on display; screens turn by themselves through the list on screen or through
   every list, with the countdown and the position in the header; a mid press stops and
-  starts the turning, a short or long press while it runs switches the two cycles).
+  starts the turning, a short press turns the screen, a long press while it runs switches
+  the two cycles).
 
 ---
 
