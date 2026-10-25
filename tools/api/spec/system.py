@@ -492,6 +492,23 @@ APIS = [
               'uses the defaults of that member\'s metadata. Check it with (defined? \'app-has-config?) on older '
               'firmware.',
     ),
+    api('app-member-folder', 'config',
+        sig='(app-member-folder app-id)',
+        desc="Make the relative file paths of the running combined app's code those of member app-id's own folder (apps/<id>), #f: its own again.",
+        returns='#t. An error when app-id is neither #f nor a member of the running combined app ([combo] members).',
+        example='''
+(app-member-folder "medicine")   ; => #t   (fs-read "meds.txt") reads apps/medicine/meds.txt now
+(app-member-folder #f)           ; => #t   back to the combined app's folder
+''',
+        where=DEVICE, check=False,
+        since='1.13.0',
+        notes='The storage quota is the member\'s too (its meta\'s storage_kb, as when it runs alone), and the '
+              'folder is made when missing. combo.scm switches around each member\'s code (also while it loads), '
+              'so a member shares its files with the app running alone; (app-info) names that folder meanwhile. '
+              'Since 1.13.0 a time of a member\'s '
+              'schedule.ini that comes while the combined app runs is not a launch of the member: the combined '
+              'app\'s app-schedule hook is called with the time and the member\'s id, (app-schedule at id).',
+    ),
     api('config-set!', 'config',
         sig='(config-set! section key value)',
         desc='Write key = value into /spiffs/config.ini (the line replaced in place with its comment kept, else added to [section]); #t when saved. Read again at the next boot.',

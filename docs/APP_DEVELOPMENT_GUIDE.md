@@ -363,14 +363,19 @@ fallback: `(or (it-int it 3) 0)`.
 | `(app-config "key" default)` | a setting (reads a file each call: read once, keep the value). |
 | `(app-goto! i)`, `(app-next-page!)`, `app-page-index` | navigation. |
 | `(app-invalidate-all)`, `(app-invalidate-body)` | redraw everything / the body. |
-| `app-long-press`, `app-mid-press` | define them to use the long (0.8 s) and mid (3.5 s) presses. |
+| `app-long-press`, `app-mid-press` | define them to use the long (0.8 s) and mid (3.5 s) presses. Define them, and `app-button`, **before** `app-define!` (it wraps them for alerts, 6.6). |
+| `app-step-proc` | `(lambda () ...)` on every main-loop pass, for sub-second work (a blinking title); return `#t` when it used the feed stream itself (a sync), and applib's own step waits for that pass. |
+| `app-hold-proc`, `app-show-proc` | your own screen cycle in a combined app (6.7). |
+| `(app-alert! key title render opts)`, `(app-alert-done! key)`, `(app-watch! url-proc ms proc)` | alerts (6.6). |
+| `(app-callback proc)` | `proc` wrapped to run as your code when the firmware calls it later (6.7). |
 
 ### 6.4 Lifecycle of one second
 
 1. The firmware calls `app-tick`: applib updates the clock fields, invalidates the header when
    the minute changes and the footer every 2 s, runs the carousel, then your `app-tick-proc`.
-2. Each main-loop pass calls `app-step`: a new feed document is copied into items, cached, given
-   to `app-data-proc`, and the whole screen is invalidated.
+2. Each main-loop pass calls `app-step`: your `app-step-proc` first, then (unless it returned
+   `#t`) a new feed document is copied into items, cached, given to `app-data-proc`, and the
+   whole screen is invalidated; a document of a watched feed (6.6) goes to its procedure.
 3. At the next display service the renderer calls `gui-render-proc` (applib's `app-render`) for
    the dirty rows. applib draws header, body (your render procedure) and footer, each only if
    `gui-visible?`.
@@ -413,6 +418,75 @@ screens (20 videos, 5 per screen) is not several applib pages:
   every list, with the countdown and the position in the header; a mid press stops and
   starts the turning, a short press turns the screen, a long press while it runs switches
   the two cycles).
+
+
+### 6.6 Alerts (强提醒)
+
+Something that needs the user now (a dose due, a new message) takes the screen over the
+pages, in a combined app too, whatever page shows:
+
+```scheme
+(app-alert! "m123" "新消息" (lambda () (render-message m))        ; key, title, body render
+            (list (cons 'ack (lambda () (mark-read! m)))           ; a short press
+                  (cons 'priority 6) (cons 'exit 'both) (cons 'seconds 60)))
+(app-alert-done! "m123")     ; the app ends it itself (the message was read elsewhere)
+```
+
+- **Queue**: the highest priority shows (1..9, 9 highest; equal ones in arrival order). A
+  higher one raised meanwhile goes in front; the one it covered comes back after it with the
+  seconds it had left. The carousel waits while one shows.
+- **Presses**: a short press confirms (its `ack` runs, then it closes); a long press puts it
+  off for `alert_snooze` minutes (5). `exit`: `button` (a press), `time` (after its seconds;
+  presses do nothing), `both`, or `app` (only `(app-alert-done! key)` ends it; a short press
+  still runs `ack`: the medicine reminder confirms one dose per press).
+- **Screen**: a title bar in the priority's color (≥ 8 red, ≥ 5 orange) with the app's name
+  and the alert's title, how many wait, a countdown when time ends it; your body; a footer
+  saying what the presses do. `(cons 'full #t)`: your render draws the whole screen itself
+  (the medicine reminder keeps its own look).
+- **Keys**: one per thing (`"m" + message id`, `"dose-" + day + time`); raising a key again
+  updates it; a key that ended is not raised again until the app restarts. Raise alerts for
+  **new** things only (not for every unread message at each start).
+- **Settings** (the user's, in this order): a combined app's `alerts` setting for the member,
+  the app's own `alert` (0: none), `alert_priority`, `alert_exit`, `alert_seconds`,
+  `alert_snooze`; then the options you pass; then 5 / both / 30 s / 5 min. Add the five keys
+  to your meta.ini `[fields]` and `[config]` (empty defaults: your options apply), as the
+  wxpusher, notifier and bilibili apps do.
+- **Seeing new things while another page shows**: `(app-watch! url-proc interval-ms proc)`
+  fetches a feed in the background at its interval (use 15 s or more), between the page's own
+  fetches, and gives its documents to `proc` (your data procedure). In a combined app this is
+  how a member that is not on screen notices its new messages.
+- Examples: `apps/wxpusher` (a new message), `apps/notifier` (priority from the message's
+  level), `apps/bilibili` (an UP主's new video, watched every 10 minutes), `apps/medicine`
+  (the reminder: full screen, exit `app`).
+
+### 6.7 In a combined app (合集)
+
+A combined app runs several apps' code in one image (applib.md "Combined apps"). Write an
+app so it also works there:
+
+- **Files**: relative paths are your app's own folder there too (firmware API 1.13
+  `app-member-folder`: the combined app switches around your code, also while it loads), so
+  you share your files with the app running alone. `(app-info)` names that folder meanwhile.
+- **Settings while loading**: `app-config` at the top level of your file reads your own
+  config.ini there too.
+- **Callbacks the firmware calls later** (`fs-download`'s on-done): wrap them,
+  `(fs-download url path (app-callback done))`, so they run as your code (your folder); a
+  bare procedure runs as the combined app's.
+- **Hooks kept per member**: `app-tick-proc` (while your page shows, and while your alert
+  shows), `app-data-proc`, `app-step-proc`, `app-schedule` (your schedule.ini times reach you
+  there: firmware API 1.13), `app-web` (your web page is picked from the combined app's web
+  page), `app-hold-proc`, `app-show-proc`, `app-long-press`, views. `app-button`,
+  `app-header-proc` and `gui-render-proc` are the combined app's: do not rely on drawing the
+  whole screen yourself; draw your pages as bodies (the medicine app draws its normal page as
+  a body, its reminder as a full-screen alert).
+- **Your own cycle**: an app that turns its screens by itself (the Bilibili app) sets
+  `app-hold-proc` (`() -> #t` while its cycle runs: the combined app's carousel waits on its
+  entry, and goes on at once when it says `#f` again) and `app-show-proc` (its entry came on
+  screen: start the cycle from its beginning). Without the combined app's carousel the cycle
+  just goes on (`app-hold-proc` is not asked).
+- **The combined app's web page** (`apps/lib/combo_web.html`) edits which pages show and in
+  which order (a page may come several times), the carousel and the members' alerts; members
+  with a page of their own are picked from the dropdown of the device's web page.
 
 ---
 
@@ -626,7 +700,9 @@ persist = 1                   ; optional: resume this launch after a reboot or p
 
 - Started at a scheduled time: `(app-scheduled)` returns `"08:00"`; when done, call
   `(app-return)` and the board goes back to the previous app.
-- Already running at that time: the hook `(app-schedule at)` is called instead.
+- Already running at that time: the hook `(app-schedule at)` is called instead. A member of
+  the running combined app (firmware API 1.13): the combined app passes it to the member's
+  `app-schedule`, as its code (no launch of the member alone).
 - The app writes `schedule.ini` itself (`fs-write`) or its web page does
   (`/api/app/file?name=schedule.ini`). The medicine app is the complete example.
 
@@ -870,6 +946,9 @@ the first tab of its web UI, and the WebREPL shows it under "🌐 应用网页".
   `web-field-int`, `web-ok`, `web-error`, `web-json`. Calls run on the main loop between frames;
   the screen is redrawn after each call. Body ≤ 4 KB, answer ≤ 8 KB.
 - Calls work only while the app runs.
+- In a combined app (6.7) your page is picked from the dropdown above the device page's app
+  tab (`/app?member=<id>`, firmware API 1.13, from your installed image); `appweb.js` sends
+  your calls and file requests to your member, and your `app-web` runs as your code.
 - Test from the simulator: `--eval "(app-web \"get\" \"\")"` for the answers, and look at the
   page itself: `--install` puts the image into the device's app folder (the web page exists
   only for an installed app, not one started with `--app`), `--webshot` saves the page:
