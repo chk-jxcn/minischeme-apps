@@ -1,5 +1,34 @@
 [
  {
+  "id": "agenda",
+  "name": "日程提醒",
+  "description": "一段日程、某一天或倒计时，支持农历和各种重复（每天、每周、每月、每年，或自定义间隔、星期、日期、月份、年份），按提醒时刻和提前提醒强提醒；在设备网页的应用选项卡中编辑；不需要联网",
+  "version": "1",
+  "api": "1.9",
+  "extensions": "",
+  "kind": "app",
+  "pages": 2,
+  "page_ids": [
+   "list",
+   "countdown"
+  ],
+  "web": true,
+  "file": "agenda.msbc",
+  "size": 78336,
+  "scm": "agenda.allinone.scm",
+  "hash": "83932bd3",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/agenda/agenda.scm",
+  "meta": "apps/agenda/meta.ini",
+  "web_page": "apps/agenda/web.html"
+ },
+ {
   "id": "album",
   "name": "电子相册",
   "description": "全屏轮播照片和 GIF 动图：在设备网页的应用选项卡上传 JPG、PNG、GIF，设置轮播间隔、顺序和动图速度；不需要代理",
@@ -259,9 +288,9 @@
  {
   "id": "notifier",
   "name": "消息提示",
-  "description": "显示电脑、手机或脚本推送来的消息，新消息时强提醒并闪烁 LED；从设备网页，或用设备 MAC 和应用服务密码向应用代理的 /notify 推送，服务器保留全部消息，设备保留最新几条",
-  "version": "9",
-  "api": "1.9",
+  "description": "显示电脑、手机或脚本推送来的消息（支持标题、颜色、列表、分隔线和图片的富文本），新消息时强提醒并闪烁 LED；从设备网页，或用设备 MAC 和应用服务密码向应用代理的 /notify 推送，服务器保留全部消息，设备保留最新几条",
+  "version": "10",
+  "api": "1.12",
   "extensions": "",
   "kind": "app",
   "pages": 2,
@@ -271,9 +300,9 @@
   ],
   "web": true,
   "file": "notifier.msbc",
-  "size": 62192,
+  "size": 73240,
   "scm": "notifier.allinone.scm",
-  "hash": "a5ead138",
+  "hash": "ee3e8855",
   "applib": "1.0",
   "libs": [
    "gui",
