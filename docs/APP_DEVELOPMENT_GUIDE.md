@@ -908,7 +908,7 @@ picture from the web (a cover, an avatar, a map):
 id = myapp                 ; = the folder and file names
 name = 我的应用             ; shown to the user
 description = 一句话说明
-version = 1                ; bump it on every change you want devices to install
+version = 1                ; raise it with every change of the app's files (a test checks it against the newest release)
 api = 1.9                  ; the firmware API it needs (1.9: the MSBC 2 image format; the build checks it)
 applib = 1.0               ; the app library version it needs: the same MAJOR, an equal or higher MINOR (section 6)
 pages = 2

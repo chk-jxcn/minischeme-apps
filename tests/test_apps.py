@@ -161,6 +161,39 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(meta['app']['page_ids'].split(',')), int(meta['app']['pages']))
 
 
+class TestAppVersions(unittest.TestCase):
+    """An app whose own files (apps/<id>/: code, meta.ini, web page) differ from the newest
+    release raises its [app] version: the market installs by the image, but devices, the
+    app manager and the web pages show the version (the Bilibili app stayed v1 through ten
+    changes). CI checks out the tags."""
+
+    def test_a_changed_app_raises_its_version(self):
+        import subprocess
+        tags = subprocess.run(['git', 'tag', '--sort=-v:refname'], cwd=ROOT, capture_output=True, text=True).stdout.split()
+        if not tags:
+            self.skipTest('no tags checked out')
+        tag = tags[0]
+        for a in app_ids():
+            folder = os.path.join(APPS, a)
+            files = sorted(f for f in os.listdir(folder)
+                           if os.path.isfile(os.path.join(folder, f)) and not f.endswith(('.msbc', '.allinone.scm')))
+            changed = []
+            for f in files:
+                r = subprocess.run(['git', 'show', f'{tag}:apps/{a}/{f}'], cwd=ROOT, capture_output=True)
+                now = read(os.path.join(folder, f))
+                if r.returncode != 0 or r.stdout.decode('utf-8').replace('\r\n', '\n') != now:
+                    changed.append(f)
+            if not changed:
+                continue
+            old = subprocess.run(['git', 'show', f'{tag}:apps/{a}/meta.ini'], cwd=ROOT, capture_output=True)
+            if old.returncode != 0:
+                continue                                  # a new app
+            was = ini(old.stdout.decode('utf-8'))['app'].get('version', '0')
+            now = ini(read(os.path.join(folder, 'meta.ini')))['app'].get('version', '0')
+            self.assertGreater(int(now), int(was),
+                               f'{a}: {", ".join(changed)} changed since {tag}; raise [app] version in meta.ini (now {now})')
+
+
 class TestAppLib(unittest.TestCase):
     """The app library is versioned (apps/lib/applib.scm applib-version, MAJOR.MINOR):
     a released version's files never change, and every app declares one this library serves."""
