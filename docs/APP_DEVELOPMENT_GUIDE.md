@@ -194,8 +194,10 @@ for _app in ('weather', 'news', ..., 'tide', 'medicine', 'myapp'):
 python tools/build_apps.py myapp
 ```
 
-The build prints `myapp: API 1.9 (N procedures)` and writes `apps/myapp.msbc` (MSBC version 2,
-which needs API 1.9; `--msbc1` writes the old format for older firmware). It fails on
+The build prints `myapp: API 1.14 (N procedures)` and writes `apps/myapp.msbc` (MSBC version 2
+with inline arithmetic instructions, which needs API 1.14; `--no-inline-arith` compiles
+arithmetic as calls, for firmware from API 1.9; `--msbc1` writes the old format for firmware
+before 1.9). It fails on
 compile errors, on an `api` lower than the code needs, and warns about **reserved** (not
 implemented) procedures: treat that warning as an error.
 
@@ -285,6 +287,12 @@ with a web page) `web-join web-field web-json`.
 | `delay`/`force`, string ports, `1+` | not needed |
 
 ### 5.3 Behaviors that surprise
+
+- **`+ - * < > <= >= =` with two arguments are instructions** (API 1.14): two small integers are
+  computed in the VM itself, anything else (floats, bignums, a wrong type) goes to the procedure
+  with the same results and errors. A local variable named `+` is still called as a procedure;
+  but redefining the global `+` (`(define (+ a b) ...)` or `(set! + ...)`) does not change the
+  calls the compiler already made instructions. Do not redefine them; use your own names.
 
 - **Strings are byte strings.** `(string-length "中")` is 3, `(string-ref "中" 0)` is 228,
   `(string->list "ab")` gives `(97 98)`. UTF-8 text survives as long as you do not cut it in the
@@ -914,7 +922,7 @@ id = myapp                 ; = the folder and file names
 name = 我的应用             ; shown to the user
 description = 一句话说明
 version = 1                ; raise it with every change of the app's files (a test checks it against the newest release)
-api = 1.9                  ; the firmware API it needs (1.9: the MSBC 2 image format; the build checks it)
+api = 1.14                 ; the firmware API it needs (1.14: the inline arithmetic the build emits; the build checks it)
 applib = 1.0               ; the app library version it needs: the same MAJOR, an equal or higher MINOR (section 6)
 pages = 2
 page_ids = main, detail    ; English page names (combined apps address pages by them)
@@ -1225,8 +1233,12 @@ python tools/msbc_stats.py apps/myapp.msbc
 by default: each symbol name is stored once in a table and referred to by a small index, and
 function headers are variable-length. That made every app about 23% smaller (all apps
 1,060 KB → 817 KB; medicine 126.6 → 97.5 KB) without touching the code. It is why every
-app declares `api = 1.9`. Only for firmware older than API 1.9: `python tools/build_apps.py
---msbc1 <app>` writes the old format (and the app can then declare its real, lower API).
+app declared `api = 1.9`. Since API 1.14 the build also compiles `(+ a b)`, `(- a b)`, `(* a b)` and
+the two-argument comparisons `< > <= >= =` as single instructions instead of a lookup of the
+global procedure and a call (images about 4% smaller, arithmetic loops about 3 times faster),
+so every app declares `api = 1.14`. For older firmware: `python tools/build_apps.py
+--no-inline-arith <app>` (API 1.9 and newer) or `--msbc1 <app>` (before 1.9) write calls and
+the older format (and the app can then declare its real, lower API).
 
 What an image is made of (the medicine app, 97.5 KB):
 

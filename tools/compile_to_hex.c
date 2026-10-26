@@ -1,7 +1,9 @@
 #define MINISCHEME_NO_MAIN 1
 /* Compiles Scheme source (the argument, or stdin with "-") to MSBC and prints it as hex.
- * MSBC version 2 (a symbol table, firmware API 1.9+) by default; --msbc1 writes
- * version 1 for older firmware. Used by tools/build_apps.py and tools/board.py. */
+ * MSBC version 2 (a symbol table, firmware API 1.9+) with inline arithmetic instructions
+ * (API 1.14+) by default; --no-inline-arith compiles (+ a b) and the like as calls, for
+ * firmware before API 1.14; --msbc1 writes version 1 for firmware before 1.9 (calls too).
+ * Used by tools/build_apps.py and tools/board.py. */
 #include "minischeme.h"
 #include "minischeme_internal.h"
 #include "msbc.h"
@@ -14,8 +16,10 @@ int main(int argc, char **argv) {
     char *source_text = NULL;
     const char *source_arg = NULL;
     uint16_t msbc_version = MSBC_VERSION;
+    bool inline_arith = true;
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--msbc1") == 0) msbc_version = 1;
+        if (strcmp(argv[i], "--msbc1") == 0) msbc_version = 1, inline_arith = false;
+        else if (strcmp(argv[i], "--no-inline-arith") == 0) inline_arith = false;
         else if (!source_arg) source_arg = argv[i];
     }
     if (source_arg && strcmp(source_arg, "-") != 0) {
@@ -52,6 +56,13 @@ int main(int argc, char **argv) {
     Value comp_code = msbc_deserialize(vm, compiler_msbc_data, compiler_msbc_len);
     Value comp_clo = mini_make_closure(vm, comp_code, mini_nil());
     mini_vm_run(vm, comp_clo, 0, NULL);
+
+    if (!inline_arith) {   /* the compiler reads *inline-arith* at each call (compiler.scm) */
+        Value flag = mini_make_symbol(vm, "*inline-arith*");
+        mini_push_root(vm, &flag);
+        env_define(vm, vm->global_env, flag, mini_false());
+        mini_pop_root(vm);
+    }
 
     Value helper = env_lookup_name(vm, "%compile-source-to-code");
     Value s = mini_make_string(vm, source_text);
