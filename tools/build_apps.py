@@ -39,6 +39,33 @@ APP_LIB = ['apps/lib/gui.scm', INFO_PAGES, 'apps/lib/applib.scm']
 APP_WEB_LIB = 'apps/lib/appweb.scm'
 APP_WEB_MARK = '<!-- appweb -->'
 
+# The app library ("applib"): every file of apps/lib/, versioned as one bundle by
+# (define applib-version "MAJOR.MINOR") in applib.scm. A backward compatible change
+# raises MINOR, an incompatible one MAJOR. Each build writes the bundle to
+# dist/lib/<version>/ (with api.json: its documented definitions); the folders of
+# earlier versions stay, and dist/lib/index.json lists them all, so an app written
+# for any version can still be built (the WebREPL's editor picks one). An app
+# declares the version it needs in meta.ini ([app] applib = 1.0): it builds with
+# the same MAJOR and an equal or higher MINOR.
+LIB_FILES = ['gui.scm', 'infopages.scm', 'applib.scm', 'appweb.scm', 'combo.scm',
+             'combo_web.html', 'appweb.css', 'appweb.js']
+APPLIB_VERSION_RE = re.compile(r'\(define\s+applib-version\s+"(\d+)\.(\d+)"\)')
+
+
+def applib_version():
+    """'MAJOR.MINOR' of apps/lib/applib.scm."""
+    m = APPLIB_VERSION_RE.search(open(os.path.join(ROOT, 'apps', 'lib', 'applib.scm'), encoding='utf-8').read())
+    if not m:
+        sys.exit('apps/lib/applib.scm: no (define applib-version "MAJOR.MINOR")')
+    return f'{m.group(1)}.{m.group(2)}'
+
+
+def applib_ok(need, have):
+    """Whether library version have serves an app that needs version need."""
+    n, h = [int(x) for x in need.split('.')], [int(x) for x in have.split('.')]
+    return n[0] == h[0] and n[1] <= h[1]
+
+
 APPS = {
     'pcmonitor': (['apps/lib/gui.scm', INFO_PAGES, 'apps/pcmonitor/pcmonitor.scm'], [], None),
     'settings': (['apps/lib/gui.scm', 'apps/settings/settings.scm'], [], 'dist/app_settings_msbc.h'),
@@ -208,10 +235,12 @@ def sanitize_config(app_id, meta, quiet=False):
     return '\n'.join(out)
 
 
-def app_meta(app_id, source_text):
+def app_meta(app_id, source_text, uses_lib=True):
     """apps/<id>/meta.ini with [app] api (and extensions) set to what the code
     needs: added when missing; a build error when declared lower, when newer
-    than this firmware API, or when a used extension is not declared."""
+    than this firmware API, or when a used extension is not declared. [app]
+    applib (an app built with apps/lib/): added as this library's version when
+    missing; a build error when this library does not serve the declared one."""
     import api as A
     path = os.path.join(ROOT, 'apps', app_id, 'meta.ini')
     if not os.path.exists(path):
@@ -231,6 +260,12 @@ def app_meta(app_id, source_text):
     add = []
     if not declared:
         add.append(f'api = {need}')
+    lib = applib_version()
+    declared_lib = re.search(r'(?m)^applib\s*=\s*([0-9]+\.[0-9]+)', meta)
+    if uses_lib and declared_lib and not applib_ok(declared_lib.group(1), lib):
+        sys.exit(f'{app_id}: meta.ini needs applib {declared_lib.group(1)}, but apps/lib/ is {lib}')
+    if uses_lib and not declared_lib:
+        add.append(f'applib = {lib}')
     declared_ext = re.search(r'(?m)^extensions\s*=\s*([^;#\n]*)', meta)
     have = {x.strip().split(' ')[0] for x in declared_ext.group(1).split(',')} if declared_ext else set()
     missing = [x for x in exts if x not in have]
@@ -253,8 +288,8 @@ def fnv1a(data):
     return h
 
 
-def meta_trailer(app_id, source_text=''):
-    meta = app_meta(app_id, source_text)
+def meta_trailer(app_id, source_text='', uses_lib=True):
+    meta = app_meta(app_id, source_text, uses_lib)
     if meta is None:
         return b''
     h = fnv1a(meta)
@@ -462,13 +497,111 @@ def write_index():
                     'web': read_web(data) is not None,
                     'file': name, 'size': len(data),
                     'scm': f'{app_id}.allinone.scm',
-                    'hash': f'{fnv1a(data):08x}'})
+                    'hash': f'{fnv1a(data):08x}',
+                    'applib': info.get('applib', ''),
+                    'libs': app_libs(app_id),
+                    'source': f'apps/{app_id}/{app_id}.scm'
+                    if os.path.exists(os.path.join(ROOT, 'apps', app_id, f'{app_id}.scm')) else '',
+                    'meta': f'apps/{app_id}/meta.ini',
+                    'web_page': f'apps/{app_id}/web.html'
+                    if os.path.exists(os.path.join(ROOT, 'apps', app_id, 'web.html')) else ''})
     for idx_path in [os.path.join(folder, 'index.json'),
                      os.path.join(ROOT, 'apps', 'index.json'),
                      os.path.join(ROOT, 'index.json')]:
         with open(idx_path, 'w', encoding='utf-8', newline='\n') as f:   # LF on every host
             json.dump(out, f, ensure_ascii=False, indent=1)
     print(f'[*] Wrote {len(out)} apps to dist/index.json, apps/index.json, and index.json')
+
+
+def app_libs(app_id):
+    """The library files an app's image is built with, in order ("gui", "applib", ...)."""
+    if app_id not in APPS:
+        return []
+    return [os.path.splitext(os.path.basename(s))[0] for s in APPS[app_id][0] if s.startswith('apps/lib/')]
+
+
+def lib_definitions(text, file_name):
+    """(definitions, sections) of a library file. definitions: [{name, sig, doc, kind,
+    section, file}], a procedure always, a variable when it has a comment; doc is the
+    ";;" comment right above the definition, else the comment at the end of its line.
+    sections: {title: the comment paragraph under its numbered banner}, the
+    reference shown for a definition without a doc of its own."""
+    out, comment, section, sections, intro, rule = [], [], '', {}, None, False
+    for line in text.replace('\r\n', '\n').split('\n'):
+        s = line.strip()
+        after_rule, rule = rule, bool(re.match(r';+\s*[=-]{5,}\s*$', s))
+        # a numbered title: ";; 9. Alerts ------" or between two ";;; -----" rules
+        banner = re.match(r';;;?\s*(\d+[a-z]?\.\s+.+?)\s*(-{3,})?$', s)
+        if banner and not line.startswith(' ') and (banner.group(2) or after_rule):
+            section, intro, comment = banner.group(1), [], []
+            continue
+        if s.startswith(';'):
+            if not re.match(r';+\s*[=-]{5,}', s):
+                (intro if intro is not None else comment).append(re.sub(r'^;+\s?', '', s))
+            continue
+        if intro is not None:            # the banner's paragraph ends at the first other line
+            if intro:
+                sections[section] = '\n'.join(intro).strip()
+            intro = None
+        tail = re.search(r'\)\s*;+\s*(.+)$', line)
+        doc = '\n'.join(comment).strip() or (tail.group(1).strip() if tail else '')
+        m = re.match(r'\(define\s+(\(([^\s()]+)[^)]*\))', line)
+        if m:
+            out.append({'name': m.group(2), 'sig': m.group(1), 'doc': doc,
+                        'kind': 'procedure', 'section': section, 'file': file_name})
+        else:
+            m = re.match(r'\(define\s+([^\s()]+)', line)
+            if m and doc:
+                out.append({'name': m.group(1), 'sig': m.group(1), 'doc': doc,
+                            'kind': 'variable', 'section': section, 'file': file_name})
+        comment = []
+    return out, sections
+
+
+def write_lib():
+    """dist/lib/<applib version>/: the library files and api.json; dist/lib/index.json:
+    every version there (earlier ones are kept), with the firmware API each needs."""
+    lib = applib_version()
+    folder = os.path.join(APPS_DIR, 'lib', lib)
+    os.makedirs(folder, exist_ok=True)
+    defs, sections = [], {}
+    for name in LIB_FILES:
+        src = os.path.join(ROOT, 'apps', 'lib', name)
+        data = open(src, 'rb').read().replace(b'\r\n', b'\n')
+        with open(os.path.join(folder, name), 'wb') as f:
+            f.write(data)
+        if name.endswith('.scm'):
+            d, secs = lib_definitions(data.decode('utf-8'), name)
+            defs += d
+            sections.update({f'{name}: {k}': v for k, v in secs.items()})
+    need = api_needs(source_text([f'apps/lib/{n}' for n in ('gui.scm', 'infopages.scm', 'applib.scm')]))[0]
+    if not MSBC1 and tuple(map(int, need.split('.'))) < tuple(map(int, MSBC2_API.split('.'))):
+        need = MSBC2_API
+    with open(os.path.join(folder, 'api.json'), 'w', encoding='utf-8', newline='\n') as f:
+        json.dump({'applib': lib, 'api': need, 'files': LIB_FILES, 'sections': sections, 'definitions': defs},
+                  f, ensure_ascii=False, indent=1)
+    versions = []
+    for v in os.listdir(os.path.join(APPS_DIR, 'lib')):
+        info = os.path.join(APPS_DIR, 'lib', v, 'api.json')
+        if re.fullmatch(r'\d+\.\d+', v) and os.path.exists(info):
+            d = json.load(open(info, encoding='utf-8'))
+            versions.append({'version': v, 'api': d.get('api', ''), 'files': d.get('files', [])})
+    versions.sort(key=lambda x: tuple(int(p) for p in x['version'].split('.')), reverse=True)
+    with open(os.path.join(APPS_DIR, 'lib', 'index.json'), 'w', encoding='utf-8', newline='\n') as f:
+        json.dump({'current': lib, 'versions': versions}, f, ensure_ascii=False, indent=1)
+    print(f'[*] applib {lib} (API {need}, {len(defs)} definitions) -> dist/lib/{lib}/; {len(versions)} version(s) listed')
+
+
+def write_api_reference():
+    """dist/api.json: the firmware API (tools/api/spec) for the WebREPL's reference list."""
+    import api as A
+    from api.spec import ALL
+    keep = ('name', 'component', 'sig', 'desc', 'returns', 'example', 'since', 'status', 'alias_of', 'ext',
+            'where', 'notes')
+    with open(os.path.join(APPS_DIR, 'api.json'), 'w', encoding='utf-8', newline='\n') as f:
+        json.dump({'api': A.API_VERSION, 'extensions': {k: v[0] for k, v in A.EXTENSIONS.items()},
+                   'entries': [{k: e[k] for k in keep if e.get(k) not in (None, '')} for e in ALL]},
+                  f, ensure_ascii=False, indent=1)
 
 
 def main():
@@ -485,7 +618,7 @@ def main():
     print(f"[*] Compiling {len(names)} apps to MSBC bytecode and all-in-one Scheme in {os.path.relpath(APPS_DIR, ROOT)}/...")
     for name in names:
         sources, images, header = APPS[name]
-        trailer = meta_trailer(name, source_text(sources))
+        trailer = meta_trailer(name, source_text(sources), any(s.startswith('apps/lib/') for s in sources))
         web = web_section(name)
         data = compile_sources(sources, name) + web + trailer
 
@@ -513,18 +646,25 @@ def main():
 
         print(f"  [OK] {name}: {len(data)} bytes -> {name}.msbc & {name}.allinone.scm ({len(allinone_text)} chars)")
 
+    write_lib()
+    write_api_reference()
     write_index()
 
     if not SYNC:
         print("[*] Cross-repository sync skipped (pass --sync to copy into sibling checkouts)")
-    # --sync: the compiled apps and all-in-one sources into minischeme-webrepl and minischeme-proxy
+    # --sync: the compiled apps and all-in-one sources into the git-ignored apps/ of a
+    # minischeme-webrepl checkout (its local server and editor take them before GitHub's)
+    # and of minischeme-proxy (deploy_public_proxy.py --with-apps)
     for dest_repo in (['minischeme-webrepl', 'minischeme-proxy'] if SYNC else []):
         dest_apps = os.path.join(ROOT, '..', dest_repo, 'apps')
-        if os.path.isdir(dest_apps):
+        if os.path.isdir(os.path.dirname(dest_apps)):
+            os.makedirs(dest_apps, exist_ok=True)
             import shutil
             for fn in os.listdir(APPS_DIR):
-                if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn == 'index.json':
+                if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn in ('index.json', 'api.json'):
                     shutil.copy2(os.path.join(APPS_DIR, fn), os.path.join(dest_apps, fn))
+            # the app library's versions (dist/lib/<version>/, index.json): the WebREPL's editor
+            shutil.copytree(os.path.join(APPS_DIR, 'lib'), os.path.join(dest_apps, 'lib'), dirs_exist_ok=True)
             # the sources: the library and each app's folder (code, meta.ini, web page)
             for sub in sorted(os.listdir(os.path.join(ROOT, 'apps'))):
                 src_dir = os.path.join(ROOT, 'apps', sub)

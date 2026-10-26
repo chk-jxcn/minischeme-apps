@@ -161,5 +161,53 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(meta['app']['page_ids'].split(',')), int(meta['app']['pages']))
 
 
+class TestAppLib(unittest.TestCase):
+    """The app library is versioned (apps/lib/applib.scm applib-version, MAJOR.MINOR):
+    a released version's files never change, and every app declares one this library serves."""
+
+    def test_every_app_declares_a_served_version(self):
+        lib = build_apps.applib_version()
+        for a in app_ids():
+            need = ini(read(os.path.join(APPS, a, 'meta.ini')))['app'].get('applib', '')
+            self.assertRegex(need, r'^\d+\.\d+$', f'{a}: meta.ini [app] applib = MAJOR.MINOR')
+            self.assertTrue(build_apps.applib_ok(need, lib), f'{a} needs applib {need}, apps/lib/ is {lib}')
+
+    def test_served_rule(self):
+        self.assertTrue(build_apps.applib_ok('1.0', '1.3'))
+        self.assertTrue(build_apps.applib_ok('1.3', '1.3'))
+        self.assertFalse(build_apps.applib_ok('1.4', '1.3'))
+        self.assertFalse(build_apps.applib_ok('1.0', '2.0'))   # a new MAJOR breaks the old apps
+
+    def test_index_lists_the_built_version(self):
+        lib = build_apps.applib_version()
+        index = json.loads(read(os.path.join(ROOT, 'dist', 'lib', 'index.json')))
+        self.assertEqual(index['current'], lib)
+        self.assertIn(lib, [v['version'] for v in index['versions']])
+        for name in build_apps.LIB_FILES:
+            self.assertEqual(read(os.path.join(ROOT, 'dist', 'lib', lib, name)),   # text mode: LF either way
+                             read(os.path.join(APPS, 'lib', name)))
+
+    def test_a_released_version_is_not_changed(self):
+        """apps/lib/ as released under this version (the newest tag that has it) is what
+        it is now: a change needs a new version (CI checks out the tags)."""
+        import subprocess
+        lib = build_apps.applib_version()
+        tags = subprocess.run(['git', 'tag', '--sort=-v:refname'], cwd=ROOT, capture_output=True, text=True).stdout.split()
+        for tag in tags:
+            changed = []
+            for name in build_apps.LIB_FILES:
+                r = subprocess.run(['git', 'show', f'{tag}:dist/lib/{lib}/{name}'], cwd=ROOT, capture_output=True)
+                if r.returncode != 0:
+                    break
+                released = r.stdout.decode('utf-8').replace('\r\n', '\n')
+                if released != read(os.path.join(APPS, 'lib', name)):
+                    changed.append(name)
+            else:
+                self.assertEqual(changed, [], f'applib {lib} was released in {tag}; {changed} changed since: '
+                                              'raise applib-version (MINOR if compatible, else MAJOR)')
+                return
+        self.skipTest(f'applib {lib} not released yet (or no tags checked out)')
+
+
 if __name__ == '__main__':
     unittest.main()

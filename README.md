@@ -72,8 +72,16 @@ members' code (`apps/lib/combo.scm`); each member's `[app] page_ids` names its p
 
 `--sync` (off by default) additionally copies the results into the sibling checkouts when they exist:
 `../minischeme-esp32/main/app_*_msbc.h` (embedded calendar and settings), and the images, all-in-one
-sources, `index.json` and app sources into `../minischeme-webrepl/apps/` and `../minischeme-proxy/apps/`.
-Use it when those repositories are to be released with the new apps.
+sources, `index.json`, `api.json`, the library versions (`dist/lib/`) and app sources into the
+git-ignored `../minischeme-webrepl/apps/` (a local WebREPL server lists them as 本地编译 and its
+editor uses them) and `../minischeme-proxy/apps/`. The published WebREPL and the public market
+take the newest release from GitHub by themselves.
+
+The app library is versioned (`(define applib-version "MAJOR.MINOR")` in `apps/lib/applib.scm`;
+compatible changes raise MINOR, incompatible ones MAJOR) and each app declares the version it
+needs (`applib = 1.0` in meta.ini). Every build writes `dist/lib/<version>/` (the library files
+and `api.json`, its documented definitions) and `dist/lib/index.json` (every version kept), and
+`dist/api.json` (the firmware API reference, from `tools/api/`), for the WebREPL's editor.
 
 ## License
 MIT License

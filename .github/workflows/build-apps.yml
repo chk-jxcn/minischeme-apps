@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Checkout minischeme-apps
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0   # the tags: tests check that a released applib version did not change
 
     - name: Checkout minischeme compiler core
       uses: actions/checkout@v4

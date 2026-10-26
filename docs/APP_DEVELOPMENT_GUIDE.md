@@ -311,6 +311,18 @@ Almost every app is built on applib. The full reference is
 [applib.md](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/applib.md); this is
 what you need daily.
 
+**Versions.** The library (every file of `apps/lib/`: gui, infopages, applib, appweb, combo
+and the web page files) has one version, `(define applib-version "MAJOR.MINOR")` in
+`applib.scm`. A backward compatible change (a new procedure, a fix) raises MINOR; an
+incompatible one (a procedure removed or changed) raises MAJOR. An app declares the version
+it needs in its meta.ini (`applib = 1.0`, section 12.1); it builds with a library of the same
+MAJOR and an equal or higher MINOR (`build_apps.py` stops otherwise, and adds the key, set to
+the current version, when it is missing). Every build writes the library to
+`dist/lib/<version>/` with `api.json` (its documented definitions); earlier versions' folders
+stay and `dist/lib/index.json` lists them all, so an app written for any version can still be
+built. A released version never changes: `tests/test_apps.py` fails when `apps/lib/` differs
+from what the newest tag released under the same version.
+
 ### 6.1 Declaring pages
 
 ```scheme
@@ -898,6 +910,7 @@ name = 我的应用             ; shown to the user
 description = 一句话说明
 version = 1                ; bump it on every change you want devices to install
 api = 1.9                  ; the firmware API it needs (1.9: the MSBC 2 image format; the build checks it)
+applib = 1.0               ; the app library version it needs: the same MAJOR, an equal or higher MINOR (section 6)
 pages = 2
 page_ids = main, detail    ; English page names (combined apps address pages by them)
 ; storage_kb = 512         ; only if the app stores much data: replaces the 256 KB folder quota
@@ -977,11 +990,21 @@ proxy built in. It renders in bands like the board, runs the JSON feed, fonts an
 cd minischeme-webrepl && python server.py        # http://127.0.0.1:8087
 ```
 
-"📦 App 管理": install an app from the list, "设为启动并重启". The list is the market's (GitHub)
-plus, when `server.py` serves the page, the apps in minischeme-webrepl's `apps/` that differ
-from it, marked 本地编译: run `python tools/build_apps.py myapp --sync` in minischeme-apps to
-put your build there. The "KEY 18" button gives short/long presses; a click on the screen is a
-touch. The REPL evaluates Scheme in the device.
+"📦 App 管理": install an app from the list, "设为启动并重启". The WebREPL carries no app of its
+own: the list is the newest minischeme-apps release (looked up again by ⟳ 刷新, the files kept
+in the browser), plus, when `server.py` serves the page, the apps in minischeme-webrepl's
+git-ignored `apps/` that differ from it, marked 本地编译: run
+`python tools/build_apps.py myapp --sync` in minischeme-apps to put your build there.
+"⬆ 上传应用" installs an `.msbc` of your own. The "KEY 18" button gives short/long presses; a
+click on the screen is a touch. The REPL evaluates Scheme in the device.
+
+The editor (Scheme 编辑器) opens an app's own code: its meta.ini as the `;;;` comment block at
+the top, then `apps/<id>/<id>.scm`. The 应用库 dropdown picks the library version compiled
+before it (the newest that serves the app's `applib`; "不使用" for an all-in-one file that
+carries the library itself); compiling makes the same image as `build_apps.py` (library, code,
+the app's web page, the whole meta.ini). "📖 API 文档" lists the firmware API and the chosen
+library version's definitions: search them, read the description and example, insert a call
+at the cursor.
 
 ### 14.2 Headless: tools/sim.py
 
@@ -1286,9 +1309,9 @@ For reference; contributors stop at the PR.
 1. Merge the PR. CI builds and pushes a `chore(build)` commit with the images.
 2. `git pull`, tag `vX.Y.Z` on that commit, push the tag; run the workflow for the tag
    (workflow dispatch with ref = the tag) to publish the GitHub Release.
-3. Copy the images into minischeme-webrepl and minischeme-proxy (`apps/`) and, for the built-in
-   apps, the headers into minischeme-esp32 (`build_apps.py --sync` does all of it); release
-   those repositories the same way.
+3. For the built-in apps (calendar, settings) copy the headers into minischeme-esp32
+   (`build_apps.py --sync` does it) and release it the same way. The WebREPL carries no app:
+   its page takes the newest release by itself.
 4. The public app server's market needs no upload: it checks the newest Release of this
    repository every 10 minutes and takes the changed images by itself (minischeme-proxy
    `proxy/market_sync.py`; the outcome in `/market/sync-status.json`). Verify that it lists the

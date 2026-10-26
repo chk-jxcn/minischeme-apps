@@ -25,6 +25,12 @@
 ;;; last one repeats); a faint bar left of the page number counts down.
 ;;; =========================================================================
 
+;; The version of the app library (every file of apps/lib/, one bundle): MAJOR.MINOR.
+;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
+;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
+;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
+(define applib-version "1.0")
+
 ;; 1. Fonts, layout, text -------------------------------------------------------
 
 (define F-TEXT 2)               ; CJK text: a 16 px face from the system font ROM
