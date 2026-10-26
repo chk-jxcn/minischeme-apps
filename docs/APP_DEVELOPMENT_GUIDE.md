@@ -1289,8 +1289,9 @@ For reference; contributors stop at the PR.
 3. Copy the images into minischeme-webrepl and minischeme-proxy (`apps/`) and, for the built-in
    apps, the headers into minischeme-esp32 (`build_apps.py --sync` does all of it); release
    those repositories the same way.
-4. Deploy the public app server (minischeme-proxy, `tools/deploy_public_proxy.py`) after backing
-   up its database and configuration; verify the device count and that the market lists the
+4. The public app server's market needs no upload: it checks the newest Release of this
+   repository every 10 minutes and takes the changed images by itself (minischeme-proxy
+   `proxy/market_sync.py`; the outcome in `/market/sync-status.json`). Verify that it lists the
    new version.
 5. Devices with market auto-update install the new version at their next boot.
 
