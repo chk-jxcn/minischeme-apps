@@ -467,9 +467,14 @@ pages, in a combined app too, whatever page shows:
   fetches a feed in the background at its interval (use 15 s or more), between the page's own
   fetches, and gives its documents to `proc` (your data procedure). In a combined app this is
   how a member that is not on screen notices its new messages.
+- **Time-driven alerts without a feed**: `app-tick-proc` runs only while your page (or your
+  alert) shows; in a combined app a member that is not on screen gets no tick. Check the clock
+  in `app-step-proc` instead (every main-loop pass, for every member, as its code; keep it
+  cheap: act at most once a second and return `#f`), as `apps/agenda` does for its reminders.
 - Examples: `apps/wxpusher` (a new message), `apps/notifier` (priority from the message's
   level), `apps/bilibili` (an UP主's new video, watched every 10 minutes), `apps/medicine`
-  (the reminder: full screen, exit `app`).
+  (the reminder: full screen, exit `app`), `apps/agenda` (reminder times of the day and
+  advance reminders, worked out from repeat rules on the board, solar or lunar).
 
 ### 6.7 In a combined app (合集)
 

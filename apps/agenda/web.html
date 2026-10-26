@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>日程提醒</title>
+<!-- appweb -->
+<style>
+.ev.off{opacity:.5}
+.ev .t{font-weight:600}
+.lunar-pick{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lunar-pick input[type=number]{width:96px;flex:none}
+.lunar-pick select{width:auto;flex:none}
+.when{display:flex;gap:8px;flex-wrap:wrap}.when>*{flex:1 1 150px;min-width:0}
+.hidden{display:none !important}
+.checks{display:flex;flex-wrap:wrap;gap:2px 0}
+#preview li{margin:2px 0}
+code{font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<section>
+<h2>日程 <span id="clock" class="tag"></span><button class="plain small" onclick="load()">刷新</button><button class="small" onclick="edit(null)">新建</button></h2>
+<div id="list" class="desc">读取中...</div>
+</section>
+
+<section id="editor" class="hidden">
+<h2 id="ed-head">新建日程</h2>
+<label for="title">标题</label>
+<input id="title" maxlength="40" placeholder="如：体检、妈妈生日、高考">
+<div class="row">
+  <div><label for="kind">类型</label>
+    <select id="kind" onchange="showFields()"><option value="r">一段日程（从…到…）</option><option value="d">某一天</option><option value="c">倒计时（到某个时刻）</option></select></div>
+  <div><label for="cal">历法</label>
+    <select id="cal" onchange="showFields()"><option value="s">公历</option><option value="l">农历</option></select></div>
+</div>
+
+<label id="start-label">开始</label>
+<div id="start"></div>
+<div id="end-box"><label>结束</label><div id="end"></div></div>
+
+<label for="times">提醒时刻</label>
+<input id="times" placeholder="如 8h:10m, 20h（在日程时间内的这些时刻提醒）">
+<div class="desc">每天的这些时刻，只要落在日程范围内（重复后的每一次），就提醒。留空：一段日程和倒计时在开始时提醒，某一天不按时刻提醒。</div>
+
+<label for="advance">提前提醒</label>
+<input id="advance" placeholder="如 -1d:8h 明天体检别吃早饭, -2h 快出发">
+<div class="desc">逗号分开，每项后面可以写提前提醒词。<code>-1d:8h</code> 一天前的 8:00，<code>-0d:7h</code> 当天 7:00，<code>-3d</code> 三天前的同一时刻，<code>-2h</code> / <code>-30m</code> / <code>-1h30m</code> 开始前多久。</div>
+
+<label for="repeat">重复</label>
+<select id="repeat" onchange="showFields()">
+  <option value="">不重复</option><option value="d">每天</option><option value="w">每周</option><option value="m">每月</option><option value="y">每年</option><option value="c">自定义</option>
+</select>
+<div id="custom" class="hidden">
+  <div class="row">
+    <div><label for="every">每隔</label><input id="every" type="number" min="0" max="999" value="1"></div>
+    <div><label for="unit">单位</label><select id="unit"><option value="d">天</option><option value="w">周</option><option value="m">月</option><option value="y">年</option></select></div>
+  </div>
+  <div class="desc">每隔 0 表示不按间隔，只按下面选的范围。农历日程的月、年按农历算。</div>
+  <label>星期</label><div class="checks" id="weekdays"></div>
+  <label for="mdays">每月的哪几天</label><input id="mdays" placeholder="如 1,15,L（L 是最后一天；农历日程是农历的日子）">
+  <label>月份</label><div class="checks" id="months"></div>
+  <label for="years">年份</label><input id="years" placeholder="如 2026-2030, 2035">
+  <div class="desc">选了的范围都要满足；没选星期和日子时，按开始那天的日子（按周时是星期几）。</div>
+</div>
+<label class="check"><input type="checkbox" id="on" checked>启用</label>
+<div class="actions">
+  <button onclick="preview()">预览</button><button onclick="save()">保存</button><button class="plain" onclick="$('editor').classList.add('hidden')">取消</button>
+</div>
+<div id="preview" class="desc" style="margin-top:10px"></div>
+</section>
+</main>
+<script>
+const KIND = {r: '日程', d: '日期', c: '倒计时'};
+const LUNAR_MONTHS = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
+const LUNAR_DAYS = Array.from({length: 30}, (_, i) => i < 10 ? '初' + '一二三四五六七八九十'[i]
+  : i < 19 ? '十' + '一二三四五六七八九'[i - 10] : i === 19 ? '二十' : i < 29 ? '廿' + '一二三四五六七八九'[i - 20] : '三十');
+let events = [], editing = 0;
+
+/* A date and time picker in the chosen calendar: solar <input type=date>, lunar year, month
+   (leap), day; the time unless the event is one whole day */
+function picker(box) {
+  const lunar = $('cal').value !== 's', day = $('kind').value === 'd';
+  const keep = readPicker(box, true);
+  box.innerHTML = lunar
+    ? `<div class="lunar-pick"><input type="number" class="y" min="1900" max="2099" placeholder="年">年
+         <select class="m">${LUNAR_MONTHS.map((n, i) => `<option value="${i + 1}">${n}月</option>`).join('')}</select>
+         <label class="check" style="margin:0"><input type="checkbox" class="leap">闰月</label>
+         <select class="d">${LUNAR_DAYS.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')}</select>
+         <input type="time" class="t${day ? ' hidden' : ''}" style="width:120px;flex:none"></div>`
+    : `<div class="when"><input type="date" class="date"><input type="time" class="t${day ? ' hidden' : ''}"></div>
+       <div class="desc lunar-of"></div>`;
+  if (!lunar) box.querySelector('.date').addEventListener('change', () => lunarOf(box));
+  if (keep) setPicker(box, keep.y, keep.m, keep.d, keep.h, keep.mi, keep.leap && lunar);
+}
+/* {y m d h mi leap} of a picker, or null */
+function readPicker(box, quiet) {
+  const t = box.querySelector('.t'), hm = t && t.value ? t.value.split(':').map(Number) : [0, 0];
+  const date = box.querySelector('.date');
+  if (date) {
+    if (!date.value) { if (quiet) return null; throw new Error('请选择日期'); }
+    const [y, m, d] = date.value.split('-').map(Number);
+    return {y, m, d, h: hm[0], mi: hm[1], leap: false};
+  }
+  const y = Number(box.querySelector('.y') && box.querySelector('.y').value);
+  if (!y) { if (quiet) return null; throw new Error('请填写农历年份'); }
+  return {y, m: Number(box.querySelector('.m').value), d: Number(box.querySelector('.d').value), h: hm[0], mi: hm[1],
+          leap: box.querySelector('.leap').checked};
+}
+function setPicker(box, y, m, d, h, mi, leap) {
+  const p2 = (n) => String(n).padStart(2, '0');
+  const date = box.querySelector('.date');
+  if (date) { date.value = `${y}-${p2(m)}-${p2(d)}`; lunarOf(box); }
+  else {
+    box.querySelector('.y').value = y; box.querySelector('.m').value = m; box.querySelector('.d').value = d;
+    box.querySelector('.leap').checked = !!leap;
+  }
+  box.querySelector('.t').value = `${p2(h)}:${p2(mi)}`;
+}
+async function lunarOf(box) {
+  const out = box.querySelector('.lunar-of'), v = box.querySelector('.date').value;
+  if (!out || !v) return;
+  const [y, m, d] = v.split('-');
+  try { out.textContent = (await appCall('lunar', {y, m, d})).lunar || ''; } catch (e) { out.textContent = ''; }
+}
+
+function showFields() {
+  picker($('start'));
+  picker($('end'));
+  const kind = $('kind').value;
+  $('end-box').classList.toggle('hidden', kind !== 'r');
+  $('start-label').textContent = kind === 'r' ? '开始' : kind === 'd' ? '日期' : '目标时刻';
+  $('custom').classList.toggle('hidden', $('repeat').value !== 'c');
+}
+
+/* "8h:10m, 20h, 7:30, 9点" -> "8:10,20:0,7:30,9:0" */
+function parseTimes(text) {
+  return text.split(/[,，、\s]+/).filter(Boolean).map((item) => {
+    const m = /^(\d{1,2})\s*(?:h|时|点)?\s*[:：]?\s*(?:(\d{1,2})\s*(?:m|分)?)?$/i.exec(item);
+    if (!m || Number(m[1]) > 23 || Number(m[2] || 0) > 59) throw new Error(`提醒时刻看不懂：${item}`);
+    return `${Number(m[1])}:${Number(m[2] || 0)}`;
+  }).join(',');
+}
+/* "-1d:8h 明天体检, -2h 快出发" -> "1/8:0~明天体检;120~快出发" (start: the default clock time of "-3d") */
+function parseAdvance(text, start) {
+  return text.split(/[,，]/).map((s) => s.trim()).filter(Boolean).map((item) => {
+    const m = /^-?\s*(?:(\d+)\s*(?:d|天))?\s*[:：]?\s*(?:(\d+)\s*(?:h|时|小时))?\s*[:：]?\s*(?:(\d+)\s*(?:m|分钟|分))?\s*(.*)$/i.exec(item);
+    if (!m || (m[1] == null && m[2] == null && m[3] == null)) throw new Error(`提前提醒看不懂：${item}`);
+    const word = m[4].replace(/[|~;]/g, ' ').trim();
+    let off;
+    if (m[1] != null) {
+      const h = m[2] != null ? Number(m[2]) : m[3] != null ? 0 : start.h, mi = m[3] != null ? Number(m[3]) : m[2] != null ? 0 : start.mi;
+      if (h > 23 || mi > 59) throw new Error(`提前提醒的时刻不对：${item}`);
+      off = `${Number(m[1])}/${h}:${mi}`;
+    } else {
+      off = String(Number(m[2] || 0) * 60 + Number(m[3] || 0));
+      if (off === '0') throw new Error(`提前提醒要提前一点时间：${item}`);
+    }
+    return word ? `${off}~${word}` : off;
+  }).join(';');
+}
+function advanceText(s) {
+  return (s || '').split(';').filter(Boolean).map((item) => {
+    const [off, word] = item.split('~');
+    let t;
+    if (off.includes('/')) {
+      const [d, hm] = off.split('/'), [h, mi] = hm.split(':').map(Number);
+      t = `-${d}d:${h}h${mi ? mi + 'm' : ''}`;
+    } else {
+      const n = Number(off);
+      t = `-${Math.floor(n / 60) ? Math.floor(n / 60) + 'h' : ''}${n % 60 ? (n % 60) + 'm' : ''}`;
+    }
+    return word ? `${t} ${word}` : t;
+  }).join(', ');
+}
+function timesText(s) {
+  return (s || '').split(',').filter(Boolean).map((t) => { const [h, m] = t.split(':').map(Number); return `${h}:${String(m).padStart(2, '0')}`; }).join(', ');
+}
+/* "2026-2030, 2035" -> [2026..2030, 2035]; "1,15,L" -> [1, 15, 32] */
+function numberList(text, lo, hi, what) {
+  const out = [];
+  for (const part of text.split(/[,，、\s]+/).filter(Boolean)) {
+    if (/^l$/i.test(part) || part === '最后') { out.push(32); continue; }
+    const m = /^(\d+)(?:-(\d+))?$/.exec(part);
+    if (!m) throw new Error(`${what}看不懂：${part}`);
+    const a = Number(m[1]), b = Number(m[2] || m[1]);
+    if (a < lo || b > hi || b < a || b - a > 100) throw new Error(`${what}超出范围：${part}`);
+    for (let v = a; v <= b; v++) out.push(v);
+  }
+  return out;
+}
+function repeatField() {
+  const r = $('repeat').value;
+  if (!r) return '';
+  if (r !== 'c') return `1,${r},,,,`;
+  const checked = (id) => [...$(id).querySelectorAll('input:checked')].map((c) => c.value);
+  const every = Math.max(0, Math.floor(Number($('every').value) || 0));
+  const parts = [every, $('unit').value, checked('weekdays').join('.'), numberList($('mdays').value, 1, 31, '日子').join('.'),
+    checked('months').join('.'), numberList($('years').value, 1900, 2100, '年份').join('.')];
+  if (!every && !parts.slice(2).some(Boolean)) throw new Error('自定义重复：填间隔，或选星期、日子、月份、年份');
+  return parts.join(',');
+}
+function fields() {
+  const fmt = (p) => `${p.y}-${p.m}-${p.d} ${p.h}:${p.mi}`;
+  const start = readPicker($('start')), kind = $('kind').value;
+  const lunar = $('cal').value !== 's';
+  const f = {id: editing, title: $('title').value.trim(), kind, cal: lunar ? (start.leap ? 'L' : 'l') : 's',
+             start: fmt(start), end: '', times: parseTimes($('times').value),
+             advance: parseAdvance($('advance').value, kind === 'd' ? {h: 8, mi: 0} : start),
+             repeat: repeatField(), on: $('on').checked ? '1' : '0'};
+  if (kind === 'r') f.end = fmt(readPicker($('end')));
+  return f;
+}
+
+function edit(ev) {
+  editing = ev ? ev.id : 0;
+  $('ed-head').textContent = ev ? `编辑：${ev.title}` : '新建日程';
+  $('title').value = ev ? ev.title : '';
+  $('kind').value = ev ? ev.kind : 'r';
+  $('cal').value = ev && ev.cal !== 's' ? 'l' : 's';
+  $('times').value = ev ? timesText(ev.times) : '';
+  $('advance').value = ev ? advanceText(ev.advance) : '';
+  $('on').checked = ev ? ev.on : true;
+  const rep = ev && ev.repeat ? ev.repeat.split(',') : null;
+  const simple = rep && rep[0] === '1' && !rep.slice(2).some(Boolean);
+  $('repeat').value = !rep ? '' : simple ? rep[1] : 'c';
+  $('every').value = rep ? rep[0] : 1;
+  $('unit').value = rep ? rep[1] : 'd';
+  const sets = (i) => rep && rep[i] ? rep[i].split('.') : [];
+  $('weekdays').querySelectorAll('input').forEach((c) => { c.checked = sets(2).includes(c.value); });
+  $('mdays').value = sets(3).map((d) => d === '32' ? 'L' : d).join(',');
+  $('months').querySelectorAll('input').forEach((c) => { c.checked = sets(4).includes(c.value); });
+  $('years').value = sets(5).join(',');
+  $('start').innerHTML = ''; $('end').innerHTML = '';
+  showFields();
+  const now = new Date();
+  const put = (box, s, leap) => {
+    const [d, t] = (s || '').split(' ');
+    const [y, m, dd] = (d || '').split('-').map(Number), [h, mi] = (t || '0:0').split(':').map(Number);
+    if (y) setPicker(box, y, m, dd, h, mi, leap);
+  };
+  if (ev) { put($('start'), ev.start, ev.cal === 'L'); put($('end'), ev.end, false); }
+  else {
+    setPicker($('start'), now.getFullYear(), now.getMonth() + 1, now.getDate(), 9, 0, false);
+    setPicker($('end'), now.getFullYear(), now.getMonth() + 1, now.getDate(), 10, 0, false);
+  }
+  $('preview').innerHTML = '';
+  $('editor').classList.remove('hidden');
+  $('editor').scrollIntoView({behavior: 'smooth'});
+}
+
+function take(r) {
+  events = r.events || [];
+  $('clock').textContent = r.clock ? `设备时间 ${r.clock}` : '设备时钟未同步';
+  $('list').className = events.length ? '' : 'desc';
+  $('list').innerHTML = events.map((e) => `
+    <div class="item ev${e.on ? '' : ' off'}">
+      <div class="grow"><div><span class="t">${esc(e.title)}</span><span class="tag">${KIND[e.kind] || ''}</span>${e.cal !== 's' ? '<span class="tag">农历</span>' : ''}
+        ${e.rule ? `<span class="tag ok">${esc(e.rule)}</span>` : ''}</div>
+        <div class="desc">${e.next ? esc(e.next) + (e.lunar ? ' · ' + esc(e.lunar) : '') + ' · ' + esc(e.left) : '已结束'}</div></div>
+      <button class="small plain" onclick="edit(events.find((x) => x.id === ${e.id}))">编辑</button>
+      <button class="small plain" onclick="act('toggle', {id: ${e.id}})">${e.on ? '停用' : '启用'}</button>
+      <button class="small danger" onclick="remove(${e.id})">删除</button>
+    </div>`).join('') || '还没有日程，点“新建”添加';
+}
+
+async function load() { await attempt(async () => take(await appCall('list'))); }
+async function act(name, f) { await attempt(async () => take(await appCall(name, f))); }
+async function remove(id) {
+  const e = events.find((x) => x.id === id);
+  if (confirm(`删除“${e ? e.title : id}”？`)) await act('delete', {id});
+}
+async function preview() {
+  await attempt(async () => {
+    const r = await appCall('preview', fields());
+    const li = (l) => l.length ? '<ul>' + l.map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<div>（没有）</div>';
+    $('preview').innerHTML = `<div>首次：${esc(r.first)}${r.rule ? ' · ' + esc(r.rule) : ''}</div>`
+      + `<h3>接下来的日程</h3>${li(r.occurrences || [])}<h3>接下来的提醒（一年内，前 10 个）</h3>${li(r.reminders || [])}`;
+  });
+}
+async function save() {
+  await attempt(async () => {
+    take(await appCall('save', fields()));
+    $('editor').classList.add('hidden');
+    say('已保存', 'ok');
+  });
+}
+
+$('weekdays').innerHTML = ['一', '二', '三', '四', '五', '六', '日'].map((n, i) =>
+  `<label class="check"><input type="checkbox" value="${(i + 1) % 7}">周${n}</label>`).join('');
+$('months').innerHTML = Array.from({length: 12}, (_, i) =>
+  `<label class="check"><input type="checkbox" value="${i + 1}">${i + 1}月</label>`).join('');
+load();
+</script>
+</body>
+</html>

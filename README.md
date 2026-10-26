@@ -19,7 +19,8 @@ This repository hosts official applications, shared component libraries, and bui
 | `futures` | 期货行情 (Futures) | Commodity futures tracking |
 | `news` | 热点新闻 (News) | Baidu's realtime, livelihood, finance and sports hot lists and the Zhihu or Toutiao hot list, live from the app proxy |
 | `bilibili` | B站热门视频 (Bilibili) | Several Bilibili lists at once (popular, weekly, must-watch, rankings by partition, an UP主's newest videos), each with its own count, screens and seconds per screen, edited on the app's web page; screens turn by themselves through one list or all of them (a mid press stops / starts); covers downloaded with fs-download into one LRU cache; needs API 1.11 |
-| `notifier` | 消息中心 (Notifier) | Push notification receiver and history viewer |
+| `notifier` | 消息中心 (Notifier) | Push notification receiver and history viewer; rich messages (headings, large text, colors, lists, dividers, pictures) from the app proxy's /notify, its user portal's editor or the app's own web page; needs API 1.12 |
+| `agenda` | 日程提醒 (Agenda) | Offline: ranges, whole days and countdowns in the solar or lunar calendar, repeated daily / weekly / monthly / yearly or by a custom interval and sets (weekdays, days of the month, months, years); reminder times and advance reminders with their own words as strong alerts, also in a combined app; edited on the app's web page |
 | `memo` | 便签备忘 (Memo) | Notes, to-do lists, and reminders |
 | `album` | 电子相册 (Album) | Bitmapped photo gallery display |
 | `tide` | 潮汐 (Tide) | Today's tide curve, height and highs/lows from the app proxy's /app/tide (Open-Meteo model), the built-in Haikou table offline |

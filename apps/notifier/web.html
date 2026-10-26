@@ -9,6 +9,9 @@
 .msg.unread .t{font-weight:600}
 .lv-urgent{color:var(--bad);border-color:var(--bad)}.lv-warn{color:var(--warn);border-color:var(--warn)}.lv-info{color:var(--accent);border-color:var(--accent)}
 code{font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted);word-break:break-all}
+.rr-h{color:var(--accent);border-bottom:2px solid var(--accent);margin:2px 0 4px}.rr-li{padding-left:14px;text-indent:-12px}
+.rr-big2{font-size:24px;line-height:30px}.rr-big3{font-size:32px;line-height:40px}
+.rr-hr{border:0;border-top:1px solid var(--muted);margin:6px 0}.rr-img{display:block;margin:4px 0;border-radius:4px;max-width:100%;height:auto}
 </style>
 </head>
 <body>
@@ -18,7 +21,10 @@ code{font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted);word-break
 <label for="title">标题</label>
 <input id="title" maxlength="60" placeholder="可以不填">
 <label for="text">内容</label>
-<textarea id="text" maxlength="400" placeholder="要显示在屏幕上的消息"></textarea>
+<textarea id="text" maxlength="1000" placeholder="要显示在屏幕上的消息"></textarea>
+<div class="desc">可用标记：# 标题、## 两倍大字、### 三倍大字、**强调**、{red}颜色{/}（红 绿 黄 蓝 灰）、- 列表、--- 分隔线；图片插在光标处（在设备上独占一行）。</div>
+<button type="button" class="plain small" onclick="$('picfile').click()">插入图片</button>
+<input id="picfile" type="file" accept="image/*" style="display:none" onchange="insertPicture(this)">
 <label for="level">级别</label>
 <select id="level"><option value="info">通知（LED 闪 20 秒）</option><option value="warn">提醒（LED 闪 20 秒）</option><option value="urgent">紧急（LED 一直闪，直到按键已读）</option></select>
 <label><input type="checkbox" id="wx">同时发到微信（经应用代理的 WxPusher，需在代理电脑上配置 appToken）</label>
@@ -43,6 +49,123 @@ code{font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted);word-break
 </main>
 <script>
 const LEVEL = {info: '通知', warn: '提醒', urgent: '紧急'};
+/* Rich messages: the markup the app server takes (# 标题, ## / ### 大字, **强调**, {red}..{/},
+   - 列表, ---), encoded here for the board as the server does (proxy/notes_rich.py); pictures
+   need the app server (its user portal or /notify) */
+const COLOR = {a: 'var(--accent)', r: '#ee7c7c', g: '#72d696', y: '#f0bc55', b: '#5a96fa', m: 'var(--muted)'};
+const NAMES = {red: 'r', '红': 'r', green: 'g', '绿': 'g', yellow: 'y', '黄': 'y', blue: 'b', '蓝': 'b', gray: 'm', grey: 'm', '灰': 'm'};
+function inline(s) {
+  const re = /\*\*|\{\/\}|\{([a-z]+|[红绿黄蓝灰])\}/g;
+  let out = '', pos = 0, color = 'n', strong = false, m;
+  while ((m = re.exec(s))) {
+    out += s.slice(pos, m.index).split('^').join('^^');
+    pos = re.lastIndex;
+    if (m[0] === '**') strong = !strong;
+    else if (m[0] === '{/}') color = 'n';
+    else if (NAMES[m[1]]) color = NAMES[m[1]];
+    else { out += m[0].split('^').join('^^'); continue; }
+    out += '^' + (strong ? 'a' : color);
+  }
+  return out + s.slice(pos).split('^').join('^^');
+}
+function encode(text) {
+  if (!/\n|\*\*|\{\/\}|\{([a-z]+|[红绿黄蓝灰])\}|^\s*(#|- |\* |• |---)|!\[[^\]]*\]\(/m.test(text)) return text.startsWith('^!') ? ' ' + text : text;
+  return '^!' + pictureLines(text).map((raw) => {
+    const s = raw.replace(/\s+$/, ''), bare = s.trim();
+    if (['---', '***', '___'].includes(bare)) return '^=';
+    const pic = /^!\[[^\]]*\]\(\s*board:(z[0-9a-f]{15})\s*\)$/.exec(bare);
+    if (pic && boardPics[pic[1]]) return `^i${pic[1]}:${boardPics[pic[1]].w}x${boardPics[pic[1]].h};`;
+    if (bare.startsWith('![')) return '^m' + inline('[网址图片请从应用服务的用户门户发送]');
+    if (bare.startsWith('#')) {
+      const level = Math.min(3, bare.length - bare.replace(/^#+/, '').length);
+      return ['^#', '^2', '^3'][level - 1] + inline(bare.replace(/^#+/, '').trim());
+    }
+    if (/^(- |\* |• )/.test(bare)) return '^-' + inline(bare.slice(2).trim());
+    return inline(s);
+  }).join('^/');
+}
+function spans(s) {
+  let out = '', cur = '', color = 'n';
+  const flush = () => { if (cur) out += COLOR[color] ? `<span style="color:${COLOR[color]}">${esc(cur)}</span>` : esc(cur); cur = ''; };
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '^' && i + 1 < s.length) {
+      const c = s[++i];
+      if (c === '^') { cur += '^'; continue; }
+      flush(); color = c; continue;
+    }
+    cur += s[i];
+  }
+  flush();
+  return out;
+}
+/* Pictures from this page: made screen-sized here (a baseline JPEG, PIC_W wide, at most PIC_H
+   tall, cut in the middle) and written into the app's img/ on the board, named as the board
+   asks for them; their id starts with "z" (the board never downloads those) */
+const PIC_W = 280, PIC_H = 160;
+const boardPics = {};   // id -> {blob, w, h}
+function pictureLines(text) {
+  const out = [];
+  for (const line of text.split('\n')) {
+    const re = /!\[[^\]]*\]\(\s*[^)\s]+\s*\)/g;
+    let pos = 0, m;
+    while ((m = re.exec(line))) {
+      if (line.slice(pos, m.index).trim()) out.push(line.slice(pos, m.index).replace(/\s+$/, ''));
+      out.push(m[0]);
+      pos = re.lastIndex;
+    }
+    if (pos === 0) out.push(line);
+    else if (line.slice(pos).trim()) out.push(line.slice(pos).trim());
+  }
+  return out;
+}
+async function boardPicture(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('不是图片')); i.src = url; });
+    const w = Math.min(PIC_W, img.naturalWidth);
+    const full = Math.round(w * img.naturalHeight / img.naturalWidth);
+    const h = Math.max(16, Math.min(PIC_H, full));
+    const srcH = Math.round(h * img.naturalWidth / w);              // the part of the picture shown: its middle
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+    g.drawImage(img, 0, Math.max(0, (img.naturalHeight - srcH) / 2), img.naturalWidth, Math.min(srcH, img.naturalHeight), 0, 0, w, h);
+    const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.8));
+    return {blob, w, h};
+  } finally { URL.revokeObjectURL(url); }
+}
+async function insertPicture(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  await attempt(async () => {
+    const p = await boardPicture(f);
+    const id = 'z' + Array.from(crypto.getRandomValues(new Uint8Array(8))).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 15);
+    boardPics[id] = p;
+    const t = $('text'), a = t.selectionStart, b = t.selectionEnd, s = `![](board:${id})`;
+    t.value = t.value.slice(0, a) + s + t.value.slice(b);
+    t.selectionStart = t.selectionEnd = a + s.length;
+    t.focus();
+    say(`图片 ${p.w}×${p.h}，${Math.round(p.blob.size / 1024)} KB，发送时写到设备上`, 'ok');
+  });
+}
+function rich(text) {
+  if (!String(text || '').startsWith('^!')) return `<div>${esc(text)}</div>`;
+  return text.slice(2).split('^/').map((line) => {
+    if (line.startsWith('^=')) return '<hr class="rr-hr">';
+    const m = /^\^i([0-9a-fz]{16}):(\d+)x(\d+);/.exec(line);
+    if (m) {
+      const w = Math.min(240, Number(m[2])), h = Math.max(16, Math.min(160, Math.round(w * Number(m[3]) / Number(m[2]))));
+      if (m[1].startsWith('z')) return `<img class="rr-img" data-file="img/${m[1]}_${m[2]}x${m[3]}.jpg" width="${m[2]}" height="${m[3]}" alt="图片">`;
+      return proxy ? `<img class="rr-img" src="${esc(proxy)}/app/notifier/pic?id=${m[1]}&w=${w}&h=${h}" width="${w}" height="${h}" alt="图片">` : '<div class="desc">[图片]</div>';
+    }
+    if (line.startsWith('^#')) return `<div class="rr-h">${spans(line.slice(2))}</div>`;
+    if (line.startsWith('^2') || line.startsWith('^3')) return `<div class="rr-big${line[1]}">${spans(line.slice(2)) || '&nbsp;'}</div>`;
+    if (line.startsWith('^-')) return `<div class="rr-li">• ${spans(line.slice(2))}</div>`;
+    return `<div>${spans(line) || '&nbsp;'}</div>`;
+  }).join('');
+}
+
 let proxy = '';
 
 function take(r) {
@@ -53,10 +176,14 @@ function take(r) {
   $('list').innerHTML = ms.map((m) => `
     <div class="item msg${m.read ? '' : ' unread'}">
       <span class="tag lv-${esc(m.level)}">${LEVEL[m.level] || esc(m.level)}</span>
-      <div class="grow"><div class="t">${esc(m.title || '')}</div><div>${esc(m.text)}</div>
+      <div class="grow"><div class="t">${esc(m.title || '')}</div>${rich(m.text)}
         <div class="desc">${esc(m.time)} ${esc(m.from || '')}</div></div>
       <button class="small plain" onclick="act('delete', {id: ${m.id}})">删除</button>
     </div>`).join('') || '暂无消息';
+  /* pictures this page wrote into the app's folder: read through appFile */
+  $('list').querySelectorAll('img[data-file]').forEach(async (img) => {
+    try { img.src = URL.createObjectURL(await appFile(img.dataset.file)); } catch (e) { img.alt = '[图片不在设备上]'; }
+  });
   const host = location.host || '设备IP';
   $('proxyhint').textContent = proxy
     ? `curl "${proxy}/notify?title=标题&text=内容&level=info&from=脚本"`
@@ -72,7 +199,10 @@ async function send() {
   const title = $('title').value.trim(), text = $('text').value.trim(), level = $('level').value;
   if (!title && !text) return say('先写标题或内容', 'warn');
   await attempt(async () => {
-    take(await appCall('notify', {title, text, level, from: '网页'}));
+    const pics = [...text.matchAll(/board:(z[0-9a-f]{15})/g)].map((x) => x[1]).filter((id) => boardPics[id]);
+    take(await appCall('notify', {title, text: encode(text), level, from: '网页'}));
+    for (const id of pics) await appFileWrite(`img/${id}_${boardPics[id].w}x${boardPics[id].h}.jpg`, boardPics[id].blob);
+    if (pics.length) take(await appCall('pics'));   // the board takes the pictures just written
     let note = '已发送到设备';
     if ($('wx').checked) {
       if (!proxy) throw new Error('没有设置应用代理，不能发到微信');
