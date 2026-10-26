@@ -7,7 +7,7 @@
 ;;; id = pcmonitor
 ;;; name = PC 性能监控
 ;;; description = LibreHardwareMonitor 的 CPU、温度、GPU、风扇曲线，按键切换链路和硬件页
-;;; version = 3
+;;; version = 4
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 

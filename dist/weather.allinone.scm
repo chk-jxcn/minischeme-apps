@@ -8,7 +8,7 @@
 ;;; id = weather
 ;;; name = 天气预报
 ;;; description = 当前位置的实况、3天/7天预报、24小时气温、未来5小时与2小时降水、空气质量和生活指数
-;;; version = 3
+;;; version = 4
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 

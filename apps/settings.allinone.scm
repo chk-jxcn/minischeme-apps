@@ -7,7 +7,7 @@
 ;;; id = settings
 ;;; name = 系统设置
 ;;; description = 设置模式（热点配网网页）、选择启动应用、网络/硬件/存储信息
-;;; version = 4
+;;; version = 5
 ;;; kind = system ; installed from the market as apps/settings.msbc, run from the hardware pages; never a boot app
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
