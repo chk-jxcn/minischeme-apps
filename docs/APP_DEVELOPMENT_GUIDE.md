@@ -308,7 +308,7 @@ with a web page) `web-join web-field web-json`.
 ## 6. The app framework (applib)
 
 Almost every app is built on applib. The full reference is
-[applib.md](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/applib.md); this is
+[applib.md](applib.md); this is
 what you need daily.
 
 **Versions.** The library (every file of `apps/lib/`: gui, infopages, applib, appweb, combo
@@ -320,7 +320,7 @@ MAJOR and an equal or higher MINOR (`build_apps.py` stops otherwise, and adds th
 the current version, when it is missing). Every build writes the library to
 `dist/lib/<version>/` with `api.json` (its documented definitions); earlier versions' folders
 stay and `dist/lib/index.json` lists them all, so an app written for any version can still be
-built. A released version never changes: `tests/test_apps.py` fails when `apps/lib/` differs
+built. The library needs a firmware API of its own (`api` in `dist/lib/index.json`, from the procedures it calls); an image needs the higher of that and its app's (`build_apps.py` and the WebREPL's editor write that into its `api`). A released version never changes: `tests/test_apps.py` fails when `apps/lib/` differs
 from what the newest tag released under the same version.
 
 ### 6.1 Declaring pages
@@ -1347,7 +1347,7 @@ For reference; contributors stop at the PR.
 
 | Topic | Where |
 |---|---|
-| Framework reference (pages, items, helpers, pitfalls, web pages, sandbox) | [applib.md](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/applib.md) |
+| Framework reference (pages, items, helpers, pitfalls, web pages, sandbox) | [applib.md](applib.md) |
 | Every device procedure, with status and examples | [docs/api](https://github.com/chk-jxcn/minischeme-esp32/tree/main/docs/api) (`README.md`, `v1.x.0.md`) |
 | Example apps | bilibili (several lists with their own screens, pictures from the network, scrolling titles, a settings web page; written by an agent from this guide), tide (charts, local fallback), medicine (schedule, sync, web page, files), memo (web page), calendar (live rows), weather (icons, several pages) |
 | App server endpoints | minischeme-proxy `proxy/endpoints.py`, `proxy/tide.py`, `proxy/medicine.py`, `proxy/bilibili.py` (pictures, signed upstream APIs), `proxy/news.py` (several sources, last list kept on failure) |

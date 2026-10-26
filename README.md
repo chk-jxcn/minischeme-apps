@@ -7,7 +7,7 @@ This repository hosts official applications, shared component libraries, and bui
 - 🧩 **[App template](docs/app-template/hello)**: a working two-page app to copy.
 - 🔧 **`tools/board.py`**: install, run, screenshot and watch the memory of an app on a real board.
 - 🔗 **[Firmware API Specification](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/README.md)**: Full runtime reference for hardware, graphics, and system calls.
-- 🔗 **[Standard App Library (applib)](https://github.com/chk-jxcn/minischeme-esp32/blob/main/docs/api/applib.md)**: The app framework: pages, the items model, helpers, web pages, the sandbox.
+- 🔗 **[Standard App Library (applib)](docs/applib.md)**: The app framework: pages, the items model, helpers, web pages, the sandbox.
 
 ## Bundled Applications
 | App ID | Name | Description |

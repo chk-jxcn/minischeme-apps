@@ -1049,6 +1049,6 @@ f  ; => 0
         notes='The format is CSS-like: blocks named after a scheme (day, night, or a name of your own; * for every '
               'scheme) holding alias: value; pairs, a value being #rgb, #rrggbb, rgb(r, g, b) or another alias; '
               '/* comments */. An app may keep its own theme.css in its folder (read with fs-read), which wins over '
-              'this file. The cascade, the built-in schemes and the day/night switch are in docs/api/applib.md.',
+              'this file. The cascade, the built-in schemes and the day/night switch are in docs/applib.md of minischeme-apps.',
     ),
 ]
