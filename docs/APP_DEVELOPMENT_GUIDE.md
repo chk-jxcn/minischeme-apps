@@ -1253,9 +1253,17 @@ constants and 4% function headers (542 functions). What you can still do:
 
 | Where | Command | What |
 |---|---|---|
-| minischeme-apps | `python -m unittest discover -s tests -v` | web pages use the helpers and the token; images carry the current page; metadata; build outputs; the template still builds (CI runs it on every push and PR) |
+| minischeme-apps | `python -m unittest discover -s tests -v` | web pages use the helpers and the token; images carry the current page; metadata; build outputs; the template still builds; the app library's versions and its own tests (CI runs it on every push and PR) |
 | minischeme-proxy | `python -m pytest -q` | endpoints, database, security; add `tests/test_<name>.py` for a new endpoint |
 | minischeme-webrepl | `python -m pytest -q tests` | the simulator, the CLI, app scenarios (`tests/test_app_medicine.py` drives an app through sim.py) |
+
+The app library has tests of its own, `tests/applib/test_*.scm` (`tests/test_applib.py` runs them):
+on the PC, compiled and run by `tools/run_scheme.c` (built from the minischeme core like
+`compile_to_hex`) after stand-ins for the firmware procedures (generated from `tools/api/spec`;
+`tests/applib/device.scm` answers config, files, clock, light and screen size), `check.scm` and
+`apps/lib/`. Each file is a list of `(check name got expected)` ending with `(check-done)`; a
+file whose first line is `;;; libs: combo` also loads combo.scm. A change of `apps/lib/` comes
+with checks of what it changes.
 
 An app with logic worth protecting (parsing, scheduling, records) gets a simulator test in
 minischeme-webrepl modeled on `tests/test_app_medicine.py`: a list of `(name . expression)`
