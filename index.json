@@ -13,9 +13,19 @@
   ],
   "web": true,
   "file": "album.msbc",
-  "size": 63768,
+  "size": 63915,
   "scm": "album.allinone.scm",
-  "hash": "e1f00c51"
+  "hash": "8bcf9448",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/album/album.scm",
+  "meta": "apps/album/meta.ini",
+  "web_page": "apps/album/web.html"
  },
  {
   "id": "bilibili",
@@ -31,9 +41,19 @@
   ],
   "web": true,
   "file": "bilibili.msbc",
-  "size": 71317,
+  "size": 71464,
   "scm": "bilibili.allinone.scm",
-  "hash": "369e60c0"
+  "hash": "13eee21f",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/bilibili/bilibili.scm",
+  "meta": "apps/bilibili/meta.ini",
+  "web_page": "apps/bilibili/web.html"
  },
  {
   "id": "calendar",
@@ -51,9 +71,18 @@
   ],
   "web": false,
   "file": "calendar.msbc",
-  "size": 60082,
+  "size": 60229,
   "scm": "calendar.allinone.scm",
-  "hash": "f891a5d9"
+  "hash": "c6e6a3a5",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/calendar/calendar.scm",
+  "meta": "apps/calendar/meta.ini",
+  "web_page": ""
  },
  {
   "id": "combo",
@@ -67,9 +96,20 @@
   "page_ids": [],
   "web": true,
   "file": "combo.msbc",
-  "size": 103897,
+  "size": 104044,
   "scm": "combo.allinone.scm",
-  "hash": "8e5ca6f2"
+  "hash": "bf491912",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb",
+   "combo"
+  ],
+  "source": "",
+  "meta": "apps/combo/meta.ini",
+  "web_page": ""
  },
  {
   "id": "crypto",
@@ -87,9 +127,18 @@
   ],
   "web": false,
   "file": "crypto.msbc",
-  "size": 49247,
+  "size": 49394,
   "scm": "crypto.allinone.scm",
-  "hash": "ceed42a7"
+  "hash": "0894e577",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/crypto/crypto.scm",
+  "meta": "apps/crypto/meta.ini",
+  "web_page": ""
  },
  {
   "id": "futures",
@@ -107,9 +156,18 @@
   ],
   "web": false,
   "file": "futures.msbc",
-  "size": 49292,
+  "size": 49439,
   "scm": "futures.allinone.scm",
-  "hash": "d8f52bb8"
+  "hash": "2098b19f",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/futures/futures.scm",
+  "meta": "apps/futures/meta.ini",
+  "web_page": ""
  },
  {
   "id": "medicine",
@@ -125,9 +183,19 @@
   ],
   "web": true,
   "file": "medicine.msbc",
-  "size": 105531,
+  "size": 105678,
   "scm": "medicine.allinone.scm",
-  "hash": "3b9901b7"
+  "hash": "6ff89402",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/medicine/medicine.scm",
+  "meta": "apps/medicine/meta.ini",
+  "web_page": "apps/medicine/web.html"
  },
  {
   "id": "memo",
@@ -144,9 +212,19 @@
   ],
   "web": true,
   "file": "memo.msbc",
-  "size": 58083,
+  "size": 58230,
   "scm": "memo.allinone.scm",
-  "hash": "f93d7592"
+  "hash": "832307d9",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/memo/memo.scm",
+  "meta": "apps/memo/meta.ini",
+  "web_page": "apps/memo/web.html"
  },
  {
   "id": "news",
@@ -165,9 +243,18 @@
   ],
   "web": false,
   "file": "news.msbc",
-  "size": 47545,
+  "size": 47692,
   "scm": "news.allinone.scm",
-  "hash": "7e4abba7"
+  "hash": "e4839340",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/news/news.scm",
+  "meta": "apps/news/meta.ini",
+  "web_page": ""
  },
  {
   "id": "notifier",
@@ -184,9 +271,19 @@
   ],
   "web": true,
   "file": "notifier.msbc",
-  "size": 62045,
+  "size": 62192,
   "scm": "notifier.allinone.scm",
-  "hash": "baf5e215"
+  "hash": "4a0a3159",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/notifier/notifier.scm",
+  "meta": "apps/notifier/meta.ini",
+  "web_page": "apps/notifier/web.html"
  },
  {
   "id": "pcmonitor",
@@ -200,9 +297,17 @@
   "page_ids": [],
   "web": false,
   "file": "pcmonitor.msbc",
-  "size": 35221,
+  "size": 35336,
   "scm": "pcmonitor.allinone.scm",
-  "hash": "170f5fef"
+  "hash": "4b10fc59",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages"
+  ],
+  "source": "apps/pcmonitor/pcmonitor.scm",
+  "meta": "apps/pcmonitor/meta.ini",
+  "web_page": ""
  },
  {
   "id": "settings",
@@ -216,9 +321,16 @@
   "page_ids": [],
   "web": false,
   "file": "settings.msbc",
-  "size": 33469,
+  "size": 33584,
   "scm": "settings.allinone.scm",
-  "hash": "7c92743f"
+  "hash": "7be6042c",
+  "applib": "1.0",
+  "libs": [
+   "gui"
+  ],
+  "source": "apps/settings/settings.scm",
+  "meta": "apps/settings/meta.ini",
+  "web_page": ""
  },
  {
   "id": "stocks",
@@ -237,9 +349,18 @@
   ],
   "web": false,
   "file": "stocks.msbc",
-  "size": 51033,
+  "size": 51180,
   "scm": "stocks.allinone.scm",
-  "hash": "91f450ea"
+  "hash": "dd10d0dd",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/stocks/stocks.scm",
+  "meta": "apps/stocks/meta.ini",
+  "web_page": ""
  },
  {
   "id": "tide",
@@ -257,9 +378,18 @@
   ],
   "web": false,
   "file": "tide.msbc",
-  "size": 60360,
+  "size": 60507,
   "scm": "tide.allinone.scm",
-  "hash": "215313d4"
+  "hash": "2fb66575",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/tide/tide.scm",
+  "meta": "apps/tide/meta.ini",
+  "web_page": ""
  },
  {
   "id": "usage",
@@ -278,9 +408,18 @@
   ],
   "web": false,
   "file": "usage.msbc",
-  "size": 51742,
+  "size": 51889,
   "scm": "usage.allinone.scm",
-  "hash": "dab9ceb2"
+  "hash": "2dbc1374",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/usage/usage.scm",
+  "meta": "apps/usage/meta.ini",
+  "web_page": ""
  },
  {
   "id": "weather",
@@ -300,9 +439,18 @@
   ],
   "web": false,
   "file": "weather.msbc",
-  "size": 59084,
+  "size": 59231,
   "scm": "weather.allinone.scm",
-  "hash": "5edd7db2"
+  "hash": "21e546f4",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/weather/weather.scm",
+  "meta": "apps/weather/meta.ini",
+  "web_page": ""
  },
  {
   "id": "wxpusher",
@@ -318,8 +466,18 @@
   ],
   "web": true,
   "file": "wxpusher.msbc",
-  "size": 64155,
+  "size": 64302,
   "scm": "wxpusher.allinone.scm",
-  "hash": "13bf6ccd"
+  "hash": "fccb4343",
+  "applib": "1.0",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib",
+   "appweb"
+  ],
+  "source": "apps/wxpusher/wxpusher.scm",
+  "meta": "apps/wxpusher/meta.ini",
+  "web_page": "apps/wxpusher/web.html"
  }
 ]

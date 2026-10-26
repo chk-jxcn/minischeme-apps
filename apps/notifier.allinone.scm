@@ -10,6 +10,7 @@
 ;;; description = 显示电脑、手机或脚本推送来的消息，新消息时强提醒并闪烁 LED；从设备网页，或用设备 MAC 和应用服务密码向应用代理的 /notify 推送，服务器保留全部消息，设备保留最新几条
 ;;; version = 8
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]
 ;;; ; how the settings page shows each [config] key: type | label | help
@@ -936,6 +937,12 @@
 ;;; carousel_seconds = 10 per page, or one value per page ("15,10,10", the
 ;;; last one repeats); a faint bar left of the page number counts down.
 ;;; =========================================================================
+
+;; The version of the app library (every file of apps/lib/, one bundle): MAJOR.MINOR.
+;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
+;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
+;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
+(define applib-version "1.0")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 

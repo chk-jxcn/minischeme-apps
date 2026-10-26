@@ -10,6 +10,7 @@
 ;;; version = 4
 ;;; kind = system ; installed from the market as apps/settings.msbc, run from the hardware pages; never a boot app
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [config]
 ;;; ; the system settings keep their values in config.ini

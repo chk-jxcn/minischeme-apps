@@ -10,6 +10,7 @@
 ;;; description = 时间、世界时间、日期、农历、节气、宜忌和倒计日；当月日历（含农历）；月相与太阳、月亮的方位和高度
 ;;; version = 7
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]
 ;;; ; how the settings page shows each [config] key: type | label | help
@@ -930,6 +931,12 @@
 ;;; carousel_seconds = 10 per page, or one value per page ("15,10,10", the
 ;;; last one repeats); a faint bar left of the page number counts down.
 ;;; =========================================================================
+
+;; The version of the app library (every file of apps/lib/, one bundle): MAJOR.MINOR.
+;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
+;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
+;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
+(define applib-version "1.0")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 

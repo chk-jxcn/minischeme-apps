@@ -10,6 +10,7 @@
 ;;; description = 全屏轮播照片和 GIF 动图：在设备网页的应用选项卡上传 JPG、PNG、GIF，设置轮播间隔、顺序和动图速度；不需要代理
 ;;; version = 6
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; storage_kb = 768 ; the photos' room in the app's folder (instead of app_storage_kb)
 ;;; 
 ;;; [fields]
@@ -933,6 +934,12 @@
 ;;; carousel_seconds = 10 per page, or one value per page ("15,10,10", the
 ;;; last one repeats); a faint bar left of the page number counts down.
 ;;; =========================================================================
+
+;; The version of the app library (every file of apps/lib/, one bundle): MAJOR.MINOR.
+;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
+;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
+;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
+(define applib-version "1.0")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 

@@ -7,6 +7,7 @@
 ;;; name = 合集
 ;;; description = 把几个应用的页面合成一个轮播：天气、万年历、最新消息、股票等，每页标出所属应用和序号；各应用的设置仍在它自己的配置里
 ;;; version = 3
+;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; pages = 5
 ;;; 
 ;;; [combo]
@@ -925,6 +926,12 @@
 ;;; carousel_seconds = 10 per page, or one value per page ("15,10,10", the
 ;;; last one repeats); a faint bar left of the page number counts down.
 ;;; =========================================================================
+
+;; The version of the app library (every file of apps/lib/, one bundle): MAJOR.MINOR.
+;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
+;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
+;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
+(define applib-version "1.0")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 

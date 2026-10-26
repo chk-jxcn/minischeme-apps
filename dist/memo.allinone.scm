@@ -10,6 +10,7 @@
 ;;; description = 待办和已完成的备忘，在设备网页的应用选项卡中添加、编辑、置顶；不需要代理
 ;;; version = 6
 ;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]
 ;;; ; how the settings page shows each [config] key: type | label | help
@@ -924,6 +925,12 @@
 ;;; carousel_seconds = 10 per page, or one value per page ("15,10,10", the
 ;;; last one repeats); a faint bar left of the page number counts down.
 ;;; =========================================================================
+
+;; The version of the app library (every file of apps/lib/, one bundle): MAJOR.MINOR.
+;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
+;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
+;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
+(define applib-version "1.0")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 
