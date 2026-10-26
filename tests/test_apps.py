@@ -242,5 +242,30 @@ class TestAppLib(unittest.TestCase):
         self.skipTest(f'applib {lib} not released yet (or no tags checked out)')
 
 
+class TestCompilerErrors(unittest.TestCase):
+    """Unbalanced source is a compile error naming its line (a stray ")" once made the
+    compiler read empty symbols forever, then crash without a message)."""
+
+    def compile(self, source):
+        import subprocess
+        build_apps.ensure_compiler()
+        return subprocess.run([build_apps.COMPILER_EXE, '-'], input=source, capture_output=True, text=True,
+                              encoding='utf-8', timeout=60)
+
+    def test_a_stray_close_paren(self):
+        r = self.compile('(define x 1)\n(define y 2))\n')
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("unexpected ')' with no '(' to close at line 2", r.stderr)
+
+    def test_an_unclosed_open_paren(self):
+        r = self.compile('(define (f x)\n  (+ x 1)\n')
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("no ')' for the '(' at line 1", r.stderr)
+
+    def test_balanced_source_compiles(self):
+        r = self.compile('(define s ")")\n(display s) ; a ) in a comment\n')
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()
