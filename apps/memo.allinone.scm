@@ -8,8 +8,8 @@
 ;;; id = memo
 ;;; name = 备忘录
 ;;; description = 待办和已完成的备忘，在设备网页的应用选项卡中添加、编辑、置顶；不需要代理
-;;; version = 7
-;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; version = 8
+;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

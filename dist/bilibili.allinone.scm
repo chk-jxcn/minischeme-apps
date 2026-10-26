@@ -6,8 +6,8 @@
 ;;; id = bilibili
 ;;; name = B站热门视频
 ;;; description = 多个榜单同时显示（综合热门/每周必看/入站必刷/排行榜/UP主最新视频），可在应用网页里增删排序，每个榜单单独设置条数和翻页
-;;; version = 2
-;;; api = 1.11 ; fs-download needs 1.10 (11.7; on 1.12 its on-done starts the next cover at once); 1.11 adds the font server, for titles full of emoji, Korean and traditional characters (9)
+;;; version = 3
+;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9); fs-download needs 1.10 (11.7; on 1.12 its on-done starts the next cover at once); 1.11 adds the font server, for titles full of emoji, Korean and traditional characters (9)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; pages = 1
 ;;; page_ids = hot ; one applib page: it keeps its own lists and their screens (section 6.5), not applib pages

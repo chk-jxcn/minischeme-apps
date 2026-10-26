@@ -8,8 +8,8 @@
 ;;; id = news
 ;;; name = 热点新闻
 ;;; description = 百度热搜、民生、财经、体育榜单，以及知乎或今日头条热榜，每页10条
-;;; version = 4
-;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; version = 5
+;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

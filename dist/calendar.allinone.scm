@@ -8,8 +8,8 @@
 ;;; id = calendar
 ;;; name = 万年历
 ;;; description = 时间、世界时间、日期、农历、节气、宜忌和倒计日；当月日历（含农历）；月相与太阳、月亮的方位和高度
-;;; version = 8
-;;; api = 1.9 ; the device API it needs: MSBC 2 images (a symbol table) since 1.9
+;;; version = 9
+;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]
