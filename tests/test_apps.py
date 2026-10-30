@@ -242,6 +242,36 @@ class TestAppLib(unittest.TestCase):
         self.skipTest(f'applib {lib} not released yet (or no tags checked out)')
 
 
+class TestApiNumbers(unittest.TestCase):
+    """tools/api/ids.json: the API procedures' permanent numbers (OP_CALL_PRIM, API 1.15). An
+    image calls a procedure by its number, so a number never changes nor goes to another name."""
+
+    def ids(self):
+        return json.load(open(os.path.join(ROOT, 'tools', 'api', 'ids.json'), encoding='utf-8'))['ids']
+
+    def test_every_procedure_has_one_number(self):
+        sys.path.insert(0, os.path.join(ROOT, 'tools'))
+        from api.spec import ALL
+        ids = self.ids()
+        self.assertEqual(len(set(ids.values())), len(ids), 'a number given twice')
+        missing = [e['name'] for e in ALL if e['component'] != 'syntax' and e['status'] != 'alias' and e['name'] not in ids]
+        self.assertEqual(missing, [], 'procedures without a number: run gen_api.py')
+
+    def test_numbers_are_only_added(self):
+        import subprocess
+        tags = subprocess.run(['git', 'tag', '--sort=-v:refname'], cwd=ROOT, capture_output=True, text=True).stdout.split()
+        ids = self.ids()
+        for tag in tags:
+            r = subprocess.run(['git', 'show', f'{tag}:tools/api/ids.json'], cwd=ROOT, capture_output=True)
+            if r.returncode != 0:
+                continue
+            released = json.loads(r.stdout.decode('utf-8'))['ids']
+            changed = {n: (i, ids.get(n)) for n, i in released.items() if ids.get(n) != i}
+            self.assertEqual(changed, {}, f'numbers released in {tag} changed (name: (then, now))')
+            return
+        self.skipTest('no release has tools/api/ids.json yet')
+
+
 class TestCompilerErrors(unittest.TestCase):
     """Unbalanced source is a compile error naming its line (a stray ")" once made the
     compiler read empty symbols forever, then crash without a message)."""

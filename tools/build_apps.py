@@ -2,14 +2,15 @@
 """Compiles the bundled MiniScheme apps to MSBC bytecode images and metadata.
 
 Usage:
-    python tools/build_apps.py [--system-fonts] [--sync] [--no-inline-arith] [--msbc1] [app1 app2 ...]
+    python tools/build_apps.py [--system-fonts] [--sync] [--target-api X.Y] [--msbc1] [app1 app2 ...]
 
-Images are MSBC version 2 (each symbol name once, in a table: about a
-quarter smaller), which firmware API 1.9 reads, with inline arithmetic
-instructions ((+ a b), (< a b) ... of the global procedures), which firmware
-API 1.14 runs: every app then needs at least API 1.14. --no-inline-arith
-compiles them as calls (API 1.9 is enough); --msbc1 writes version 1 (names
-inline, calls) for firmware before 1.9.
+Images are for the newest firmware API: MSBC version 2 (each symbol name
+once, in a table: about a quarter smaller, API 1.9), inline arithmetic ((+ a b),
+(< a b) ... of the global procedures, API 1.14), API procedures called by
+number and inline car cdr not null? pair? eq? vector-ref (API 1.15): every app
+then needs at least API 1.15. --target-api X.Y compiles for older firmware
+(1.14: arithmetic only; 1.13 or lower: calls; --no-inline-arith is 1.13);
+--msbc1 writes version 1 (names inline, calls) for firmware before 1.9.
 
 Everything is written inside this repository (dist/, apps/, index.json).
 --sync also copies the results into sibling checkouts, when they exist:
@@ -253,8 +254,9 @@ def app_meta(app_id, source_text, uses_lib=True):
     need, exts, used, reserved = api_needs(source_text)
     if not MSBC1 and A.version_tuple(need) < A.version_tuple(MSBC2_API):
         need = MSBC2_API   # the image format itself needs it
-    if not NO_INLINE and A.version_tuple(need) < A.version_tuple(INLINE_API):
-        need = INLINE_API  # so do its arithmetic instructions
+    floor = image_api_floor()
+    if floor and A.version_tuple(need) < A.version_tuple(floor):
+        need = floor       # so do the instructions the target allows
     for n in reserved:
         print(f"{app_id}: warning: {n} is a reserved API (not provided yet): guard it with (api-has? '{n})")
     declared = re.search(r'(?m)^api\s*=\s*([0-9.]+)', meta)
@@ -375,8 +377,15 @@ SYSTEM_FONTS = False  # --system-fonts
 SYNC = False          # --sync: also copy the results into sibling repositories
 MSBC1 = False         # --msbc1: MSBC version 1 images (firmware before API 1.9)
 MSBC2_API = '1.9'     # the API that reads MSBC version 2
-NO_INLINE = False     # --no-inline-arith (or --msbc1): arithmetic as calls (firmware before API 1.14)
-INLINE_API = '1.14'   # the API that runs the inline arithmetic instructions
+TARGET_API = None     # --target-api X.Y (--no-inline-arith: 1.13, --msbc1: 1.8): None, the newest
+# what an image compiled for a target needs at least: the instructions the target allows
+INSTRUCTION_APIS = ('1.15', '1.14')   # API procedures by number + inline car..; inline arithmetic
+
+
+def image_api_floor():
+    import api as A
+    target = A.version_tuple(TARGET_API or A.API_VERSION)
+    return next((v for v in INSTRUCTION_APIS if target >= A.version_tuple(v)), None)
 
 
 def embed_fonts(name, text):
@@ -438,7 +447,7 @@ def compile_sources(sources, name=None):
     text = source_text(sources)
     if name:
         text = embed_fonts(name, text)
-    flags = (['--msbc1'] if MSBC1 else []) + (['--no-inline-arith'] if NO_INLINE else [])
+    flags = (['--msbc1'] if MSBC1 else []) + (['--target-api', TARGET_API] if TARGET_API else [])
     r = subprocess.run([COMPILER_EXE, '-'] + flags, input=text, capture_output=True,
                        text=True, encoding='utf-8', cwd=ROOT)
     if r.returncode != 0:
@@ -613,12 +622,19 @@ def write_api_reference():
 
 
 def main():
-    global SYSTEM_FONTS, SYNC, MSBC1, NO_INLINE
+    global SYSTEM_FONTS, SYNC, MSBC1, TARGET_API
     args = sys.argv[1:]
     SYSTEM_FONTS = '--system-fonts' in args
     SYNC = '--sync' in args
     MSBC1 = '--msbc1' in args
-    NO_INLINE = MSBC1 or '--no-inline-arith' in args
+    if '--target-api' in args:
+        i = args.index('--target-api')
+        TARGET_API = args[i + 1]
+        del args[i:i + 2]
+    if '--no-inline-arith' in args:
+        TARGET_API = '1.13'
+    if MSBC1:
+        TARGET_API = '1.8'
     names = [a for a in args if not a.startswith('--')] or list(APPS)
 
     ensure_compiler()

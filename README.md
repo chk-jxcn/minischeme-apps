@@ -55,12 +55,13 @@ and is real: when a source fails the app keeps its last data (no demo values).
 
 ## Building Applications to MSBC Bytecode
 ```bash
-python tools/build_apps.py [--system-fonts] [--sync] [--no-inline-arith] [--msbc1] [app ...]
+python tools/build_apps.py [--system-fonts] [--sync] [--target-api X.Y] [--msbc1] [app ...]
 ```
 This compiles each Scheme app into an MSBC binary package with embedded metadata and font ROM dependencies.
-Images are MSBC version 2 (each symbol name once, in a table: about a quarter smaller) with inline
-arithmetic instructions, which need firmware API 1.14; `--no-inline-arith` compiles arithmetic as
-calls (API 1.9), `--msbc1` writes version 1 for older firmware. `python tools/msbc_stats.py <image>`
+Images are MSBC version 2 (each symbol name once, in a table: about a quarter smaller) with the
+instructions of API 1.15 (inline arithmetic, API procedures called by their permanent numbers from
+`tools/api/ids.json`, which only ever grows), which need firmware API 1.15; `--target-api 1.9`
+compiles calls for older firmware, `--msbc1` writes version 1. `python tools/msbc_stats.py <image>`
 shows where an image's bytes go.
 All outputs stay inside this repository: `dist/` (images, all-in-one sources, `index.json`,
 `app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
