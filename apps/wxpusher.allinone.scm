@@ -8,8 +8,8 @@
 ;;; id = wxpusher
 ;;; name = WxPusher
 ;;; description = WxPusher 接收终端：推送到你微信的消息显示在屏幕上，新消息时 LED 闪烁；首次使用时用微信扫屏幕上的二维码登录（经应用代理）
-;;; version = 13
-;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
+;;; version = 14
+;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

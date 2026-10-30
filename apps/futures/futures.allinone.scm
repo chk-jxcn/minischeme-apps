@@ -8,8 +8,8 @@
 ;;; id = futures
 ;;; name = 期货行情
 ;;; description = 国内期货主力合约报价、单个合约分时、30日走势（新浪行情）
-;;; version = 5
-;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
+;;; version = 6
+;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

@@ -7,9 +7,9 @@
 ;;; id = settings
 ;;; name = 系统设置
 ;;; description = 设置模式（热点配网网页）、选择启动应用、网络/硬件/存储信息
-;;; version = 6
+;;; version = 7
 ;;; kind = system ; installed from the market as apps/settings.msbc, run from the hardware pages; never a boot app
-;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
+;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [config]

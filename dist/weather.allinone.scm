@@ -8,8 +8,8 @@
 ;;; id = weather
 ;;; name = 天气预报
 ;;; description = 当前位置的实况、3天/7天预报、24小时气温、未来5小时与2小时降水、空气质量和生活指数
-;;; version = 5
-;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
+;;; version = 6
+;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

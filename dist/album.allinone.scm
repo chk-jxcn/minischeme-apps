@@ -8,8 +8,8 @@
 ;;; id = album
 ;;; name = 电子相册
 ;;; description = 全屏轮播照片和 GIF 动图：在设备网页的应用选项卡上传 JPG、PNG、GIF，设置轮播间隔、顺序和动图速度；不需要代理
-;;; version = 8
-;;; api = 1.14 ; the device API it needs: 1.14 runs the inline arithmetic instructions the build emits (--no-inline-arith: 1.9)
+;;; version = 9
+;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; storage_kb = 768 ; the photos' room in the app's folder (instead of app_storage_kb)
 ;;; 
