@@ -313,6 +313,7 @@ with its `[config]` comment as help.
 | `number`, `number:min-max` | number box with limits | digits |
 | `bool` | checkbox | `1` or `0` |
 | `select:v1=label1,v2=label2` | drop-down | the value `vN` (labels may not contain `,` or `=`) |
+| `pages` (applib 1.1, key `show_pages` only) | list of the app's pages (by `page_names`): add, move up/down, remove; a page may come several times | `page_ids` comma separated, in order (`front, hourly, front`) |
 
 **Comment caveat:** in every line of meta.ini and of the settings ini, an ASCII `;`
 or `#` starts a comment. Labels, help texts and values must not contain them (use
@@ -438,6 +439,20 @@ settings (only with 2+ pages), loads the fonts, starts the feed for page 1 and
 invalidates the screen. Put it last in the file; set `app-subtitle-proc`,
 `app-tick-proc` and `app-render-empty-pages` before it.
 
+**Pages shown and their order (applib 1.1).** An app whose meta.ini has the setting
+`show_pages` (`[fields] show_pages = pages | 显示的页面 | ...`, `[config] show_pages = `,
+and `[app] page_ids` and `page_names` naming every page in the order of `app-define!`)
+lets the user pick the pages to show and their order, a page possibly several times:
+`show_pages = moon, today, moon`. Entries are English page names (`page_ids`; the build
+passes them to `(app-page-ids! ...)` before the app's code), numbers (1 first) or the
+pages' own names; unknown ones are skipped, and an empty value (or none known) shows every
+page in the app's order. `app-page-index` stays the page's number in the app's own list
+(code that tests `(= app-page-index 0)` keeps working); `app-order` lists the pages shown
+and `app-order-pos` the place shown now. Turning pages, the carousel (its seconds count per
+place), the "n/N" badge and the prefetch follow the order; a page not shown is never
+fetched. `(app-goto! i)` shows page i and goes on from its first place in the order (a page
+not in it is shown all the same). Inside a combined app the 合集's own entries decide.
+
 Only one JSON feed runs at a time: the current page's URL. Turning to a page with
 another URL starts its feed (fetched at once); the cached document of that URL is
 shown until the new one arrives.
@@ -511,8 +526,9 @@ are cut or scrolled to fit (`txt-fit`).
 ### Carousel
 
 With `carousel = 1` (also `on`, `yes`, `true`) in the app's ini or `config.ini`, and
-two or more pages, pages turn by themselves. `carousel_seconds` is one value or one
-per page (`15,10,10`, the last repeats), each clamped to 3..3600. A bar left of the
+two or more pages shown, pages turn by themselves. `carousel_seconds` is one value or one
+per page (`15,10,10`, the last repeats; with `show_pages` per place in that order), each
+clamped to 3..3600. A bar left of the
 page number counts down (2 px per second, 1 px for pages over 30 s, at most 90 px).
 A short press still turns the page and restarts the count. The carousel stops while
 the info pages are open and restarts its count when they open and close. From a
@@ -621,16 +637,20 @@ every call.
 | `(app-view! name page proc)` | Declares a view a combined app may show: entry `<app>.<name>[i]` calls `(proc items i)` on page `page`'s data (wxpusher: `news`). | |
 | `app-pages` | Vector of page descriptors. | vector |
 | `app-urls` | Vector of the pages' URLs (built once). | vector |
-| `app-page-index` | Current page, 0-based. | integer |
+| `app-page-index` | Current page, 0-based, its number in the app's own list (also with `show_pages`). | integer |
 | `(app-npages)` | Number of pages. | integer |
 | `(app-cur)` | Current page descriptor. | vector |
-| `(app-goto! i)` | Shows page `i`: restarts the carousel count, starts the feed if the URL differs, invalidates. | |
-| `(app-next-page!)` | Next page, wrapping to page 1. | |
+| `app-order` | The pages shown, in order (`show_pages`; every page when it is empty): page numbers, a page possibly several times (applib 1.1). | vector |
+| `app-order-pos` | The place in `app-order` shown now (applib 1.1). | integer |
+| `(app-norder)` | Number of places in `app-order` (applib 1.1). | integer |
+| `(app-page-ids! ids)` | The pages' English names (`page_ids`); the build calls it for an app with `show_pages` (applib 1.1). | |
+| `(app-goto! i)` | Shows page `i`: the order goes on from its first place in `app-order`; restarts the carousel count, starts the feed if the URL differs, invalidates. | |
+| `(app-next-page!)` | The next place in `app-order`, wrapping to the first. | |
 | `(app-carousel-pause)` | Stops the carousel on this page (REPL). | `'off`, `'paused` or `'running` |
 | `(app-carousel-resume)` | Starts counting this page again. | state symbol |
 | `(app-carousel-state)` | `'off` (no carousel), `'paused` or `'running`. | symbol |
 | `(app-carousel-reset!)` | Restarts the current page's countdown (no-op without carousel). | |
-| `(app-page-seconds i)` | Carousel seconds of page `i`. Only valid while `app-carousel` is a list. | integer |
+| `(app-page-seconds i)` | Carousel seconds of the i-th place in `app-order`. Only valid while `app-carousel` is a list. | integer |
 | `app-carousel` | Seconds per page (list) while turning, else `#f`. | |
 | `app-carousel-left` | Seconds left on this page. | integer |
 | `app-carousel-paused` | `#t` after `app-carousel-pause`. | boolean |
@@ -717,6 +737,7 @@ their labels in font 0 (`FONT-SYS-16`), which has few CJK characters.
 | `(str-split s ch)` | `"a,b,,c"` `#\,` -> `("a" "b" "" "c")`. | list of strings |
 | `(str-part s ch k)` | k-th (0-based) field, `""` when missing. | string |
 | `(str-empty? s)` | `#t` for `#f` or `""`. | boolean |
+| `(str-trim s)` | Without leading and trailing spaces (applib 1.1). | string |
 | `(str-starts? s prefix)` | Prefix test. | boolean |
 | `(url-encode s)` | Percent-encodes every byte except `0-9 A-Z a-z , - . _ ~`. | string |
 | `(int->str n)` | `number->string`. | string |

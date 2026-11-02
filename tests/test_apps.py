@@ -110,6 +110,8 @@ class TestAppMetadata(unittest.TestCase):
                             self.assertTrue(lo <= float(default) <= hi, f'{default} not in {lo}..{hi}')
                     elif kind == 'bool':
                         self.assertIn(default, ('', '0', '1'))
+                    elif kind == 'pages':          # page_ids in order, a page possibly several times
+                        self.assertEqual(key, 'show_pages')
                     else:
                         self.assertEqual(kind, 'text')
 
@@ -123,6 +125,30 @@ class TestAppMetadata(unittest.TestCase):
             with self.subTest(app=app):
                 self.assertIn(app, listed)
                 self.assertEqual(str(listed[app].get('version')), meta['app']['version'])
+
+    def test_page_settings(self):
+        """show_pages (applib 1.1): page_ids and page_names name every page, in the order of the
+        app's (app-define! ...); the settings page edits it as a list (type pages)"""
+        for app in app_ids():
+            meta = ini(read(os.path.join(APPS, app, 'meta.ini')))
+            if 'show_pages' not in meta.get('config', {}):
+                continue
+            with self.subTest(app=app):
+                a = meta['app']
+                ids = [x.strip() for x in a.get('page_ids', '').split(',') if x.strip()]
+                names = [x.strip() for x in a.get('page_names', '').split(',') if x.strip()]
+                self.assertEqual(len(ids), int(a['pages']), 'page_ids: one per page')
+                self.assertEqual(len(names), int(a['pages']), 'page_names: one per page')
+                self.assertEqual(len(set(ids)), len(ids), 'page_ids: each once')
+                self.assertTrue(meta['fields'].get('show_pages', '').startswith('pages |'))
+                need = tuple(int(x) for x in a.get('applib', '0.0').split('.'))
+                self.assertGreaterEqual(need, (1, 1), 'show_pages needs applib 1.1')
+                code = read(os.path.join(APPS, app, f'{app}.scm'))
+                body = code[code.index('(app-define!'):]
+                literal = re.findall(r'\((?:app-page|app-local-page)\s+(?:"([^"]*)"|\()', body)
+                for k, (got, want) in enumerate(zip(literal, names)):
+                    if got:                        # a computed name (news' fifth page) is not checked
+                        self.assertEqual(got, want, f'page {k + 1}')
 
     def test_each_app_has_its_info(self):
         """<id>.info.json beside index.json: that app's entry alone (a device reads only its own apps')"""

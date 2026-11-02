@@ -927,18 +927,26 @@ api = 1.15                 ; the firmware API it needs (1.15: the instructions t
 applib = 1.0               ; the app library version it needs: the same MAJOR, an equal or higher MINOR (section 6)
 pages = 2
 page_ids = main, detail    ; English page names (combined apps address pages by them)
+page_names = 主页, 详情    ; the pages' own names, as page_ids (the settings page lists them)
 ; storage_kb = 512         ; only if the app stores much data: replaces the 256 KB folder quota
 
 [fields]
-; key = type | label | help        types: text, number:min-max, bool, select:v=label,v=label
+; key = type | label | help        types: text, number:min-max, bool, select:v=label,v=label, pages
 city = text | 城市 | 留空表示自动定位
+show_pages = pages | 显示的页面 | 选择要显示的页面和顺序，同一页可以出现多次。留空显示全部页面
 
 [config]
 city =                      ; the default
 proxy_url =                 ; empty: the system app server
 carousel =                  ; empty: the system setting
 carousel_seconds =
+show_pages =                ; empty: every page; else page_ids in order, a page possibly several times
 ```
+
+- `show_pages` (applib 1.1, apps with 2+ pages): the user picks the pages shown and their
+  order on the settings page (type `pages`: a list built from `page_ids` / `page_names`),
+  a page possibly several times. `app-page-index` keeps the page's own number; see
+  docs/applib.md "Pages shown and their order". Declare `applib = 1.1`.
 
 - `;` and `#` start a comment **anywhere**, also inside values and in `[fields]` help text.
 - `(app-config "city" "")` reads the app's `config.ini`, then the system `config.ini`. Choose
