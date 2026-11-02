@@ -64,7 +64,9 @@ instructions of API 1.15 (inline arithmetic, API procedures called by their perm
 compiles calls for older firmware, `--msbc1` writes version 1. `python tools/msbc_stats.py <image>`
 shows where an image's bytes go.
 All outputs stay inside this repository: `dist/` (images, all-in-one sources, `index.json`,
-`app_default_msbc.h`, `app_settings_msbc.h`), the copies in `apps/`, and the root `index.json`.
+one `<id>.info.json` per app, `app_default_msbc.h`, `app_settings_msbc.h`), the copies in
+`apps/`, and the root `index.json`. A device reads only the `<id>.info.json` of its installed
+apps; `index.json` is for browsers (the device page, the WebREPL).
 
 The build checks each app's API requirement: it fails when the code needs a newer API than
 `meta.ini` declares or than the firmware provides (`tools/api`, now API 1.13.0), or uses an

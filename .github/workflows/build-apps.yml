@@ -98,6 +98,7 @@ jobs:
           dist/minischeme-apps-binaries.zip
           dist/*.msbc
           dist/*.allinone.scm
+          dist/*.info.json
           dist/index.json
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

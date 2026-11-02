@@ -583,20 +583,24 @@ APIS = [
     # ---- market ---------------------------------------------------------------
     api('market-refresh', 'market',
         sig='(market-refresh)',
-        desc='Start reading the market index in the background; (market-status) follows it, (market-apps) has the result.',
-        returns='#t when the read started; otherwise a string saying why ("market: busy", "market: not connected", '
+        desc='Start checking the installed apps against the market in the background, one app at a time; (market-status) follows it, (market-apps) has the result.',
+        returns='#t when the check started; otherwise a string saying why ("market: busy", "market: not connected", '
                 '"market: no market_url and no proxy in config.ini"). Never an error.',
         example='''
 (market-refresh)                      ; => #t
-(eq? (cdr (assq 'state (market-status))) 'refreshing)   ; => #t, until the index arrived
+(eq? (cdr (assq 'state (market-status))) 'refreshing)   ; => #t, until every app was checked
 ''',
         notes='The market is `config.ini [market] market_url`, else `<[app] proxy>/market` (the app proxy, minischeme-proxy, '
-              'serves its apps/ folder there). Its index.json lists every app with id, name, description, version, api, '
-              'extensions, file, size and hash (FNV-1a of the image). The board fetches over plain HTTP. '
-              'Automatic updates (`[market] market_auto_update = 1`): an app\'s boot checks once when the '
-              'network comes up (within 30 s); with updates the device restarts into the system settings, '
-              'installs them and restarts into the app. No network at boot or a failed check: skipped until '
-              'the next boot, never retried.',
+              'serves its apps/ folder there), laid out like a package repository: index.json lists every app with id, '
+              'name, description, version, api, extensions, file, size and hash (FNV-1a of the image) for browsers (the '
+              'device page searches and compares it), and <id>.info.json holds one app\'s entry. The device reads only '
+              'the <id>.info.json of its installed apps (the folders /spiffs/apps/<id>/, the root app, the built-in '
+              'settings), never the whole index, so a market of any size costs it nothing. Plain HTTP. '
+              'Automatic updates (`[market] market_auto_update = 1`): an app\'s boot checks the running app alone once '
+              'when the network comes up (within 30 s); with an update the device restarts into the system settings, '
+              'which check every installed app, install the updates and restart into the app. The device page\'s '
+              '全部更新 starts the same round. No network at boot or a failed check: skipped until the next boot, '
+              'never retried.',
         since='1.1.0', where=DEVICE, check=False,
     ),
     api('market-status', 'market',
@@ -613,10 +617,11 @@ APIS = [
     ),
     api('market-apps', 'market',
         sig='(market-apps)',
-        desc='The apps of the last index read, each compared with the installed copy.',
-        returns="A list of (id name version installed status size description): installed is the installed "
-                "copy's version or #f; status is new, installed (same image), update (another image, not an older "
-                "version) or incompatible (needs a newer API or an extension this device lacks). () before a refresh.",
+        desc='The installed apps of the last check (and any app asked for by id), each compared with its market entry.',
+        returns="A list of (id name version installed status size description): version is the market's, installed "
+                "the installed copy's version or #f; status is checking (its entry is being read), new, installed "
+                "(same image), update (another image, not an older version), incompatible (needs a newer API or an "
+                "extension this device lacks) or absent (the market has no such app: version is \"\"). () before a check.",
         example='''
 (for-each (lambda (a) (display (list (car a) (list-ref a 4))) (newline)) (market-apps))
 ; ("calendar" installed)
@@ -626,8 +631,8 @@ APIS = [
     ),
     api('market-install', 'market',
         sig='(market-install id)',
-        desc="Queue the install of an app (a string id), or 'updates for every app with an update; downloads run in the background.",
-        returns='The number of apps queued; a string saying why when none is ("market: install and update apps in the system settings" while an app runs on the board, "market: no app x", "market: no updates", "market: refresh the list first", or an incompatible app). Never an error. Each image goes to a temporary file, is checked (size, hash, image, API) and only then replaces the installed file (/spiffs/apps/<id>.msbc, or the root app.msbc when that is the installed copy); the apps run the new version from the next boot.',
+        desc="Queue the install of an app (a string id; one not installed is looked up first: its <id>.info.json), or 'updates for every checked app with an update; downloads run in the background.",
+        returns='The number of apps queued; a string saying why when none is ("market: install and update apps in the system settings" while an app runs on the board, "market: no app x", "market: no updates", "market: refresh the list first", "market: busy" during a check, or an incompatible app). Never an error. An app the market lacks is reported in (market-status) once its entry was looked up. Each image goes to a temporary file, is checked (size, hash, image, API) and only then replaces the installed file (/spiffs/apps/<id>/app.msbc, or the root app.msbc when that is the installed copy); the apps run the new version from the next boot.',
         example='''
 (market-refresh)
 ;; ... once (market-status) says idle:

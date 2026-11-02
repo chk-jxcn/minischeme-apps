@@ -527,7 +527,17 @@ def write_index():
                      os.path.join(ROOT, 'index.json')]:
         with open(idx_path, 'w', encoding='utf-8', newline='\n') as f:   # LF on every host
             json.dump(out, f, ensure_ascii=False, indent=1)
-    print(f'[*] Wrote {len(out)} apps to dist/index.json, apps/index.json, and index.json')
+    # <id>.info.json: one app's entry, as a package repository has it. A device reads
+    # only the entries of its own apps (minischeme_market.c), never the whole index,
+    # so the market may grow without costing the board memory; browsers read index.json.
+    for info_dir in (folder, os.path.join(ROOT, 'apps')):
+        for fn in os.listdir(info_dir):
+            if fn.endswith('.info.json'):
+                os.remove(os.path.join(info_dir, fn))
+        for entry in out:
+            with open(os.path.join(info_dir, f"{entry['id']}.info.json"), 'w', encoding='utf-8', newline='\n') as f:
+                json.dump(entry, f, ensure_ascii=False)
+    print(f'[*] Wrote {len(out)} apps to dist/index.json, apps/index.json, and index.json (and <id>.info.json each)')
 
 
 def app_libs(app_id):
@@ -686,7 +696,7 @@ def main():
             os.makedirs(dest_apps, exist_ok=True)
             import shutil
             for fn in os.listdir(APPS_DIR):
-                if fn.endswith('.msbc') or fn.endswith('.allinone.scm') or fn in ('index.json', 'api.json'):
+                if fn.endswith(('.msbc', '.allinone.scm', '.info.json')) or fn in ('index.json', 'api.json'):
                     shutil.copy2(os.path.join(APPS_DIR, fn), os.path.join(dest_apps, fn))
             # the app library's versions (dist/lib/<version>/, index.json): the WebREPL's editor
             shutil.copytree(os.path.join(APPS_DIR, 'lib'), os.path.join(dest_apps, 'lib'), dirs_exist_ok=True)

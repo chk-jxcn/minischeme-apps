@@ -124,6 +124,20 @@ class TestAppMetadata(unittest.TestCase):
                 self.assertIn(app, listed)
                 self.assertEqual(str(listed[app].get('version')), meta['app']['version'])
 
+    def test_each_app_has_its_info(self):
+        """<id>.info.json beside index.json: that app's entry alone (a device reads only its own apps')"""
+        for folder in (os.path.join(ROOT, 'apps'), os.path.join(ROOT, 'dist')):
+            with open(os.path.join(folder, 'index.json'), encoding='utf-8') as f:
+                index = json.load(f)
+            ids = set()
+            for entry in index:
+                ids.add(entry['id'])
+                with self.subTest(folder=os.path.basename(folder), app=entry['id']):
+                    with open(os.path.join(folder, f"{entry['id']}.info.json"), encoding='utf-8') as f:
+                        self.assertEqual(json.load(f), entry)
+            stale = {fn[:-len('.info.json')] for fn in os.listdir(folder) if fn.endswith('.info.json')} - ids
+            self.assertEqual(stale, set(), 'info files of apps the index no longer lists')
+
 
 class TestMedicine(unittest.TestCase):
     """The medicine app's contract with the firmware's scheduler."""

@@ -126,7 +126,7 @@ minischeme-apps/
 │   │   ├── applib.scm        the framework: pages, feed, header, footer, carousel
 │   │   ├── appweb.scm/.js/.css  web page helpers (only for apps with web.html)
 │   │   └── combo.scm         combined apps (合集)
-│   ├── <id>.msbc, <id>.allinone.scm, index.json    build outputs (CI commits them)
+│   ├── <id>.msbc, <id>.allinone.scm, <id>.info.json, index.json    build outputs (CI commits them)
 ├── dist/                     the same outputs plus app_default_msbc.h, app_settings_msbc.h
 ├── docs/
 │   ├── APP_DEVELOPMENT_GUIDE.md   this guide
@@ -1086,8 +1086,9 @@ python tools/board.py COM5 log 120                       # the serial console fo
 - `exec` compiles on the PC and runs on the board as the owner (REPL rights); it sees the
   running app's globals. The board itself has no compiler.
 - **Market auto-update:** a board with `market_auto_update = 1` replaces an installed app whose
-  image differs from the market's, even at the same version. Turn it off while testing
-  (`market-auto 0`) and on again afterwards (`market-auto 1`).
+  image differs from the market's, even at the same version: its boot checks the running app's
+  `<id>.info.json`, and with an update the system settings check and update every installed
+  app. Turn it off while testing (`market-auto 0`) and on again afterwards (`market-auto 1`).
 - Without the tool: the board's web page (system settings mode) can upload an app, and
   `POST /api/upload?path=/spiffs/apps/<id>/app.msbc&run=0`, `POST /api/settings`
   (`system.boot_app=apps/<id>/app.msbc`), `POST /api/reset` do the same.
@@ -1297,13 +1298,14 @@ Contributors (other agents included) deliver changes as pull requests to `main`.
 
 1. Branch from an up-to-date `main`: `git checkout main && git pull && git checkout -b feat/myapp`.
 2. Commit **sources only**: `apps/<id>/<id>.scm`, `meta.ini`, `web.html`, `tools/build_apps.py`,
-   tests, docs. Do **not** commit build outputs (`*.msbc`, `*.allinone.scm`, `index.json`,
-   `apps/index.json`, `dist/`): CI builds and commits them after the merge. Add files by name
-   and put back the outputs you rebuilt:
+   tests, docs. Do **not** commit build outputs (`*.msbc`, `*.allinone.scm`, `*.info.json`,
+   `index.json`, `apps/index.json`, `dist/`): CI builds and commits them after the merge. Add
+   files by name and put back the outputs you rebuilt (a new app's `apps/<id>.info.json` is
+   untracked: leave it):
 
    ```bash
    git add apps/myapp/myapp.scm apps/myapp/meta.ini apps/myapp/web.html tools/build_apps.py
-   git checkout -- '*.msbc' '*.allinone.scm' index.json apps/index.json dist
+   git checkout -- '*.msbc' '*.allinone.scm' '*.info.json' index.json apps/index.json dist
    git status            # only your sources staged; new build outputs stay untracked
    ```
 3. Conventional English commit messages: `feat(myapp): ...`, `fix(tide): ...`, `docs: ...`,
@@ -1344,7 +1346,11 @@ For reference; contributors stop at the PR.
    repository every 10 minutes and takes the changed images by itself (minischeme-proxy
    `proxy/market_sync.py`; the outcome in `/market/sync-status.json`). Verify that it lists the
    new version.
-5. Devices with market auto-update install the new version at their next boot.
+5. Devices with market auto-update install the new version at their next boot (when the
+   running app has an update; the device page's 全部更新 updates all installed apps at once).
+   The market is laid out like a package repository: `index.json` for browsers (the device page
+   and the WebREPL search and compare it themselves) and one `<id>.info.json` per app, the only
+   part a device reads, so the market may grow without costing the boards memory.
 
 ---
 
