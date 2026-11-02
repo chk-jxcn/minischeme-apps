@@ -753,7 +753,28 @@ their labels in font 0 (`FONT-SYS-16`), which has few CJK characters.
 
 Colors are RGB565 integers. The framework's colors are **aliases** resolved
 through color schemes: a built-in **day** scheme (light) and **night** scheme
-(dark, the colors every app had before), switched automatically.
+(dark, the colors every app had before), switched automatically, and (applib 1.2) more
+built-in schemes to pick for either mode:
+
+| Scheme | Name | Base |
+|---|---|---|
+| `hc_dark` | 高对比·深色 (white on black, contrast 15:1 and more) | night |
+| `hc_light` | 高对比·浅色 (black on white) | day |
+| `dopamine` | 多巴胺·浅色 (cream, sunny yellow, hot pink, violet) | day |
+| `dopamine_dark` | 多巴胺·深色 (neon on deep purple) | night |
+| `morandi` | 莫兰迪 (soft greyed tones) | day |
+| `ocean` | 深海 (deep blue, cyan) | night |
+| `retro` | 复古琥珀 (amber terminal) | night |
+| `sakura` | 樱花 (pink) | day |
+
+Each is one string in `THEME-PRESETS` (`";bg:#000000;fg:#ffffff;..."`): it stays in the app
+image (Code ROM), so none costs heap. A built-in scheme in use answers step 5 for its
+aliases; the app's defaults and the day / night table of its **base** mode fill in the rest
+(a dark scheme takes the night defaults also when it is used by day). A block of the same
+name in a theme.css overrides single colors (`hc_dark { accent_fg: #ffff00; }`). Main,
+secondary and muted text keep at least 4.5:1 against the background in every scheme (12:1
+in the high-contrast ones). An image built before applib 1.2 does not know them and
+shows its day or night colors.
 
 `(theme-color c)` gives the color to draw with: a number passes as it is; a
 string is a literal (`"#rrggbb"`, `"#rgb"`, `"rgb(r, g, b)"`) or an alias
@@ -762,8 +783,8 @@ string is a literal (`"#rrggbb"`, `"#rgb"`, `"rgb(r, g, b)"`) or an alias
 1. a color given to the call itself (a number or a literal);
 2. the app's own `theme.css` (in its folder), the block of the scheme in use;
 3. the system's `/spiffs/theme.css` (read with `(theme-css)`, API 1.8), the same block;
-4. the app's defaults, `(theme-defaults! scheme alist)`;
-5. the built-in day or night scheme.
+4. the app's defaults, `(theme-defaults! scheme alist)` (of the scheme, then of its base mode);
+5. the built-in scheme: one of the table above, else day or night.
 
 An alias no step names falls back to its **category**, the part after the last
 `_` (`titlebar_bg` → `bg`, `text_sub_fg` → `fg`, `card_border` → `border`),
@@ -777,7 +798,7 @@ their own (`my_gold: #ffcc33; accent_fg: my_gold;`).
 day   { titlebar_bg: #d7e1ec; my_gold: #e0a000; warning_fg: my_gold; }
 night { titlebar_bg: #152030; }
 *     { seg_on_fg: #6fcf7f; }          /* every scheme */
-sakura { bg: #fff0f5; }               /* a scheme of your own */
+my_theme { bg: #fff0f5; }             /* a scheme of your own */
 ```
 
 The mode is set in `config.ini [theme]` (an app's own config.ini may set the
