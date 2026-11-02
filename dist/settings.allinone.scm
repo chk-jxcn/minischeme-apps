@@ -7,7 +7,7 @@
 ;;; id = settings
 ;;; name = 系统设置
 ;;; description = 设置模式（热点配网网页）、选择启动应用、网络/硬件/存储信息
-;;; version = 7
+;;; version = 8
 ;;; kind = system ; installed from the market as apps/settings.msbc, run from the hardware pages; never a boot app
 ;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
@@ -696,7 +696,7 @@
 (define (menu-items)
   (list (list "设置模式" "开启热点，在手机或电脑上设置 WiFi、启动应用和应用配置")
         (list "启动应用" (string-append "当前：" (app-name-of (boot-app-path))))
-        (list "应用市场" "从市场安装新应用，更新已安装的应用")
+        (list "应用更新" "检查并更新已安装的应用（新应用在设备网页安装）")
         (list "设备信息" "网络、硬件、存储")
         (list "恢复出厂" "清空程序 ROM、应用配置、文件系统或字库")
         (list "退出设置" (string-append "重启并运行 " (app-name-of (boot-app-path))))))
@@ -791,8 +791,11 @@
             (loop (+ i 1) (+ y 62))))))
   (render-footer "短按：下一个  长按：选择  中长按：返回"))
 
-;; The app market (minischeme_market.c through market-*): the rows are
-;; "全部更新" when there are updates, then the apps
+;; App updates (minischeme_market.c through market-*): the installed apps,
+;; each checked against its own entry of the market (<id>.info.json, never the
+;; whole index: a market of any size costs nothing here). The rows are "全部更新"
+;; when there are updates, then the apps. New apps are installed from the device
+;; page, which reads the market itself.
 (define (mk-id a) (car a))
 (define (mk-name a) (cadr a))
 (define (mk-version a) (caddr a))
@@ -813,6 +816,8 @@
     (cond ((eq? s 'installed) (list "已安装" theme-success))
           ((eq? s 'update) (list "有更新" theme-warning))
           ((eq? s 'incompatible) (list "需新固件" theme-danger))
+          ((eq? s 'checking) (list "检查中" theme-text-muted))
+          ((eq? s 'absent) (list "市场无" theme-text-muted))
           (else (list "未安装" theme-text-muted)))))
 
 (define (mk-sub a st)
@@ -821,20 +826,24 @@
         (string-append "正在下载 " (if (and (number? total) (> total 0))
                                        (string-append (number->string (quotient (* 100 got) total)) "%")
                                        (kb got))))
-      (string-append "v" (mk-version a)
-                     (if (and (mk-installed a) (not (equal? (mk-installed a) (mk-version a))))
-                         (string-append "（已装 v" (mk-installed a) "）") "")
-                     "  " (kb (mk-size a)) "  " (mk-desc a))))
+      (cond ((memq (mk-status a) '(checking absent))     ; no market entry (yet): the installed copy
+             (string-append "v" (or (mk-installed a) "?")
+                            (if (eq? (mk-status a) 'absent) "  应用市场里没有这个应用" "  正在读取市场信息…")))
+            (else
+             (string-append "v" (mk-version a)
+                            (if (and (mk-installed a) (not (equal? (mk-installed a) (mk-version a))))
+                                (string-append "（已装 v" (mk-installed a) "）") "")
+                            "  " (kb (mk-size a)) "  " (mk-desc a))))))
 
 (define (render-market)
-  (render-header (if market-auto "自动更新应用" "应用市场"))
+  (render-header (if market-auto "自动更新应用" "应用更新"))
   (let* ((st (market-status)) (state (ref st 'state))
          (rows (market-rows)) (total (length rows))
          (top (+ HDR-H 34))
          (start (max 0 (min (- sel (- APP-ROWS 1)) (- total APP-ROWS)))))
     ;; the state line: what the market does now, or the last outcome
     (txt-fit 14 (+ HDR-H 8) 292
-             (cond ((eq? state 'refreshing) "正在读取应用市场…")
+             (cond ((eq? state 'refreshing) "正在检查已安装的应用…")
                    ((eq? state 'installing) (string-append "正在安装，还有 " (show (ref st 'queued)) " 个排队"))
                    ((eq? state 'error) (string-append "失败：" (ref st 'message)))
                    ((> (string-length market-note) 0) market-note)
@@ -855,7 +864,7 @@
                    (if (and (eq? state 'installing) (equal? (ref st 'app) (mk-id r)))
                        (bar 20 (+ y 50) 280 4 (ref st 'received) (ref st 'total) theme-accent))))
             (loop (+ i 1) (+ y 62))))))
-  (render-footer (if market-auto "更新完成后自动返回应用" "短按：下一个  长按：安装 / 更新  中长按：返回")))
+  (render-footer (if market-auto "更新完成后自动返回应用" "短按：下一个  长按：更新 / 重装  中长按：返回")))
 
 (define (render-setup)
   (render-header "设置模式")
@@ -1068,6 +1077,10 @@
           (cond ((and (pair? r) (eq? (mk-status r) 'incompatible))
                  (set! market-note (string-append (mk-name r) " 需要更新后的固件"))
                  (redraw))
+                ((and (pair? r) (eq? (mk-status r) 'absent))
+                 (set! market-note (string-append (mk-name r) " 不在应用市场里"))
+                 (redraw))
+                ((and (pair? r) (eq? (mk-status r) 'checking)) #f)
                 (else
                  (let ((n (market-install (if (eq? r 'updates) 'updates (mk-id r)))))
                    (set! market-note (if (string? n) (string-append "失败：" n) ""))
@@ -1133,7 +1146,8 @@
          (if (= restart-in 0) (restart)))
         ((and market-auto (ref (market-status) 'return))   ; the automatic update is over
          (set! market-auto #f)
-         (restart-soon (cond ((str-ends? (ref (market-status) 'message) " 0 failed") "应用已更新")
+         (restart-soon (cond ((str-ends? (ref (market-status) 'message) "no updates") "没有需要更新的应用")
+                             ((str-ends? (ref (market-status) 'message) " 0 failed") "应用已更新")
                              ((str-ends? (ref (market-status) 'message) " failed") "部分应用更新失败")
                              (else "没有完成自动更新"))
                        (string-append "正在返回 " (app-name-of (boot-app-path)) "...")))
