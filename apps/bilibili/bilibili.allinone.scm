@@ -941,7 +941,7 @@
 ;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
 ;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
 ;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
-(define applib-version "1.0")
+(define applib-version "1.1")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 
@@ -1013,6 +1013,12 @@
     (if (< k (length parts)) (list-ref parts k) "")))
 
 (define (str-empty? s) (or (not s) (= (string-length s) 0)))
+
+(define (str-trim s)                     ; "  a b " -> "a b" (spaces only)
+  (let loop ((a 0) (b (string-length s)))
+    (cond ((and (< a b) (char=? (string-ref s a) #\space)) (loop (+ a 1) b))
+          ((and (< a b) (char=? (string-ref s (- b 1)) #\space)) (loop a (- b 1)))
+          (else (substring s a b)))))
 
 (define (str-starts? s prefix)
   (and (>= (string-length s) (string-length prefix))
@@ -1179,7 +1185,10 @@
                                              ; (a sync), the framework's step waits
 (define app-pages (vector))
 (define app-urls (vector))
-(define app-page-index 0)
+(define app-page-index 0)                    ; the page shown: its number in the app's own list
+(define app-page-ids '())                    ; the pages' English names (meta.ini page_ids; the build sets them)
+(define app-order (vector))                  ; the pages shown, in order (show_pages): numbers in the app's list
+(define app-order-pos 0)                     ; the place in app-order being shown
 (define app-time "--:--")
 (define app-sec "--")                        ; the device clock's seconds, weekday and date (月日)
 (define app-week "")
@@ -1205,6 +1214,40 @@
 (define (app-local-page name render) (vector name (lambda () "") 0 render))
 (define (app-local? i) (string=? (vector-ref app-urls i) ""))
 (define (app-npages) (vector-length app-pages))
+(define (app-norder) (vector-length app-order))
+;; The pages' English names (meta.ini page_ids): tools/build_apps.py calls it before the
+;; app's code for an app with the show_pages setting
+(define (app-page-ids! ids) (set! app-page-ids ids))
+
+;; Page i of the app named s: an English page name (page_ids), a number (1 first) or the
+;; page's own name; #f when none
+(define (app-page-named s n)
+  (let ((named (let loop ((l app-page-ids) (k 0))
+                 (cond ((null? l) #f) ((string=? (car l) s) k) (else (loop (cdr l) (+ k 1)))))))
+    (cond ((string=? s "") #f)
+          (named (and (< named n) named))
+          ((string->number s) (let ((k (- (string->number s) 1))) (and (integer? k) (>= k 0) (< k n) k)))
+          (else (let loop ((k 0))
+                  (cond ((>= k n) #f)
+                        ((string=? (vector-ref (vector-ref app-pages k) 0) s) k)
+                        (else (loop (+ k 1)))))))))
+
+;; show_pages in the app's settings: the pages to show in this order, comma separated
+;; (today, moon, today: a page may come several times); empty, or no page known in it:
+;; every page in the app's own order
+(define (app-show-order)
+  (let* ((n (app-npages))
+         (picked (filter (lambda (k) k)
+                         (map (lambda (s) (app-page-named (str-trim s) n))
+                              (str-split (app-config "show_pages" "") #\,)))))
+    (list->vector (if (null? picked)
+                      (let loop ((k (- n 1)) (acc '())) (if (< k 0) acc (loop (- k 1) (cons k acc))))
+                      picked))))
+
+;; The first place in the order that shows page i, #f when it is not shown
+(define (app-order-find i)
+  (let loop ((p 0))
+    (cond ((>= p (app-norder)) #f) ((= (vector-ref app-order p) i) p) (else (loop (+ p 1))))))
 (define (app-cur) (vector-ref app-pages app-page-index))
 
 (define (app-config key default)
@@ -1301,7 +1344,7 @@
     (if (< i (app-npages))
         (let ((url (vector-ref app-urls i)))
           (cond
-            ((or (string=? url "") (app-cache-entry url))
+            ((or (string=? url "") (app-cache-entry url) (not (app-order-find i)))   ; a page not shown: never
              (loop (+ i 1)))
             (else
              (set! app-feed-url url)
@@ -1369,7 +1412,7 @@
 
 ;; The countdown, right-aligned at xr: a faint track and what is left of it
 (define (app-render-countdown xr)
-  (let* ((secs (app-page-seconds app-page-index))
+  (let* ((secs (app-page-seconds app-order-pos))
          (full (carousel-bar-w secs))
          (left (min full (* (max 0 app-carousel-left) (carousel-px secs))))
          (y (quotient (- HDR-H CAROUSEL-BAR-H) 2)))
@@ -1380,14 +1423,14 @@
 (define (app-render-header items)
   (let* ((w (scr-w))
          (tw (txt-w app-time))
-         (ind (if (or app-index-always (> app-page-index 0))
-                  (string-append (int->str (+ app-page-index 1)) "/" (int->str (app-npages)))
+         (ind (if (or app-index-always (> app-order-pos 0))
+                  (string-append (int->str (+ app-order-pos 1)) "/" (int->str (app-norder)))
                   #f))
          (iw (if ind (+ (txt-w ind) 12) 0))
          (badge (- w 8 tw 8 iw))
          ;; the carousel's countdown sits left of the page number (of the clock on page 1)
          (bar-r (- badge (if ind 6 0)))
-         (right (if (pair? app-carousel) (- bar-r (carousel-bar-w (app-page-seconds app-page-index)) 6) badge)))
+         (right (if (pair? app-carousel) (- bar-r (carousel-bar-w (app-page-seconds app-order-pos)) 6) badge)))
     (gui-rect 0 0 w HDR-H theme-card-hdr #t)
     (if (pair? app-carousel) (app-render-countdown bar-r))
     (txt-right (- w 8) 8 app-time theme-text-main)
@@ -1519,6 +1562,7 @@
         (if (null? secs) '(10) secs))
       #f))
 
+;; seconds of the i-th place in the order (carousel_seconds: one value, or one per place)
 (define (app-page-seconds i)
   (cond
     ((or (not (pair? app-carousel)) (null? app-carousel)) 10)
@@ -1526,21 +1570,27 @@
     (else (list-ref app-carousel (- (length app-carousel) 1)))))
 
 (define (app-carousel-reset!)
-  (if (pair? app-carousel) (set! app-carousel-left (app-page-seconds app-page-index))))
+  (if (pair? app-carousel) (set! app-carousel-left (app-page-seconds app-order-pos))))
 
 (define (app-define! title pages)
   (set! app-title title)
   (set! app-pages (list->vector pages))
   (set! app-urls (list->vector (map (lambda (p) ((vector-ref p 1))) pages)))
-  (set! app-page-index 0)
-  (set! app-carousel (if (> (length pages) 1) (app-carousel-config) #f))
+  (set! app-order (app-show-order))
+  (set! app-order-pos 0)
+  (set! app-page-index (if (> (app-norder) 0) (vector-ref app-order 0) 0))
+  (set! app-carousel (if (> (app-norder) 1) (app-carousel-config) #f))
   (app-carousel-reset!)
   (app-init-fonts!)
   (app-start-feed!)
   (app-alert-wrap-buttons!)
   (app-invalidate-all))
 
+;; Page i of the app's own list; the order goes on from its first place (a page the order
+;; does not show is shown all the same, the order then goes on where it was)
 (define (app-goto! i)
+  (if (not (and (< app-order-pos (app-norder)) (= (vector-ref app-order app-order-pos) i)))
+      (let ((p (app-order-find i))) (if p (set! app-order-pos p))))
   (set! app-page-index i)
   (set! app-carousel-held #f)
   (app-carousel-reset!)
@@ -1548,7 +1598,9 @@
   (app-follow-page!)                 ; its data still fresh: shown from the cache
   (app-invalidate-all))
 
-(define (app-next-page!) (app-goto! (remainder (+ app-page-index 1) (app-npages))))
+(define (app-next-page!)
+  (set! app-order-pos (remainder (+ app-order-pos 1) (max 1 (app-norder))))
+  (app-goto! (if (> (app-norder) 0) (vector-ref app-order app-order-pos) 0)))
 
 ;; Page i fetches from url from now on (the URL procedures run once, at
 ;; app-define!); the page shown fetches it at once
