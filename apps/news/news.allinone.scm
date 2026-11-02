@@ -87,7 +87,8 @@
 ;;   2. the app's theme.css (in its folder), the block of the scheme in use
 ;;   3. the system's /spiffs/theme.css (theme-css, API 1.8), the same block
 ;;   4. the app's own defaults (theme-defaults!)
-;;   5. the built-in day or night scheme (THEME-DAY, THEME-NIGHT)
+;;   5. the built-in scheme: day or night (THEME-DAY, THEME-NIGHT), or one of
+;;      THEME-PRESETS (high contrast, dopamine ...) named by theme_day / theme_night
 ;; When none of them names the alias, the same steps for its category, the
 ;; part after the last "_" (titlebar_bg -> bg, text_sub_fg -> fg,
 ;; card_border -> border). A value is #rgb, #rrggbb, rgb(r, g, b) or
@@ -95,7 +96,7 @@
 ;;   day   { my_orange: #f08c32; warning_fg: my_orange; }
 ;;   night { titlebar_bg: #152030; }
 ;;   *     { seg_on_fg: #6fcf7f; }        (every scheme)
-;;   sakura { bg: #fff4f6; }              (a scheme of your own)
+;;   my_theme { bg: #fff4f6; }            (a scheme of your own)
 ;; The mode (config.ini [theme], an app's own config.ini may override):
 ;;   theme        auto (default), day or night
 ;;   theme_switch light (default: light-lux at or over theme_light_day is
@@ -126,6 +127,22 @@
     ("inactive_fg" . "#c4cdd8") ("divider_border" . "#a3b0bf")
     ("seg_on_fg" . "#000000") ("seg_off_fg" . "bg")      ; unlit segments not shown by day
     ("bar_fg" . "accent_fg") ("bar_bg" . "titlebar_bg") ("icon_fg" . "accent_fg")))
+
+;; More built-in schemes (applib 1.2): name, the mode whose app defaults and
+;; built-in colors fill in (a dark scheme: night), and ";alias:value;..." as one
+;; string, which stays in the app image (Code ROM): none costs heap. The device
+;; page and the WebREPL list the same (THEME_PRESETS: keep them in step).
+(define THEME-PRESETS
+  '(
+    ("hc_dark" "night" . ";bg:#000000;fg:#ffffff;border:#ffffff;card_bg:bg;card_border:#ffffff;titlebar_bg:#262626;text_fg:#ffffff;text_sub_fg:#f0f0f0;text_muted_fg:#d6d6d6;accent_fg:#00e5ff;accent_bg:#003c47;success_fg:#33ff77;warning_fg:#ffd400;danger_fg:#ff5c5c;purple_fg:#e0a3ff;inactive_fg:#4d4d4d;divider_border:#bfbfbf;seg_on_fg:#ffffff;seg_off_fg:#1a1a1a;bar_fg:accent_fg;bar_bg:titlebar_bg;icon_fg:accent_fg;")   ; hc_dark
+    ("hc_light" "day" . ";bg:#ffffff;fg:#000000;border:#000000;card_bg:bg;card_border:#000000;titlebar_bg:#e0e0e0;text_fg:#000000;text_sub_fg:#1a1a1a;text_muted_fg:#333333;accent_fg:#0040a8;accent_bg:#cfe0ff;success_fg:#00632a;warning_fg:#7a4a00;danger_fg:#a80000;purple_fg:#5214a0;inactive_fg:#b3b3b3;divider_border:#404040;seg_on_fg:#000000;seg_off_fg:bg;bar_fg:accent_fg;bar_bg:titlebar_bg;icon_fg:accent_fg;")   ; hc_light
+    ("dopamine" "day" . ";bg:#fff8e7;fg:#2b1b47;border:#ff5fa2;card_bg:bg;card_border:#ff5fa2;titlebar_bg:#ffd23f;text_fg:#2b1b47;text_sub_fg:#45306b;text_muted_fg:#5f4a85;accent_fg:#d81b60;accent_bg:#ffd6e7;success_fg:#00875a;warning_fg:#c25e00;danger_fg:#d0021b;purple_fg:#7b2ff7;inactive_fg:#f2dfc0;divider_border:#b58cff;seg_on_fg:#d81b60;seg_off_fg:bg;bar_fg:#00a3b8;bar_bg:#ffe9a8;icon_fg:#7b2ff7;")   ; dopamine
+    ("dopamine_dark" "night" . ";bg:#1a0f2e;fg:#fff3fb;border:#ff4fd8;card_bg:bg;card_border:#ff4fd8;titlebar_bg:#2f1754;text_fg:#fff3fb;text_sub_fg:#e6d6ff;text_muted_fg:#c2aee6;accent_fg:#00f0ff;accent_bg:#40206e;success_fg:#39ff88;warning_fg:#ffd23f;danger_fg:#ff5c7a;purple_fg:#d08cff;inactive_fg:#3a2a55;divider_border:#9a78d9;seg_on_fg:#ff4fd8;seg_off_fg:#2a1640;bar_fg:#ffd23f;bar_bg:titlebar_bg;icon_fg:#00f0ff;")   ; dopamine_dark
+    ("morandi" "day" . ";bg:#eeeae4;fg:#3a3632;border:#a89c8f;card_bg:bg;card_border:#a89c8f;titlebar_bg:#d9d0c5;text_fg:#3a3632;text_sub_fg:#4f4a43;text_muted_fg:#655e55;accent_fg:#466168;accent_bg:#cfdadc;success_fg:#4a6b4d;warning_fg:#80602b;danger_fg:#8f453f;purple_fg:#6c5a7a;inactive_fg:#d4ccc2;divider_border:#a69a8d;seg_on_fg:#3e4a4e;seg_off_fg:bg;bar_fg:accent_fg;bar_bg:titlebar_bg;icon_fg:accent_fg;")   ; morandi
+    ("ocean" "night" . ";bg:#031926;fg:#d9f2ff;border:#2f6f8f;card_bg:bg;card_border:#2f6f8f;titlebar_bg:#072b40;text_fg:#d9f2ff;text_sub_fg:#a9d3e8;text_muted_fg:#86b8d0;accent_fg:#4fd1e8;accent_bg:#0c4a63;success_fg:#5be3a8;warning_fg:#ffc857;danger_fg:#ff8080;purple_fg:#b9a3ff;inactive_fg:#12384d;divider_border:#3f84a6;seg_on_fg:#4fd1e8;seg_off_fg:#062635;bar_fg:accent_fg;bar_bg:titlebar_bg;icon_fg:accent_fg;")   ; ocean
+    ("retro" "night" . ";bg:#0a0700;fg:#ffb000;border:#8a5f00;card_bg:bg;card_border:#8a5f00;titlebar_bg:#241900;text_fg:#ffb000;text_sub_fg:#e89e00;text_muted_fg:#c48600;accent_fg:#ffd36b;accent_bg:#3d2a00;success_fg:#a6f05a;warning_fg:#ffd36b;danger_fg:#ff6a45;purple_fg:#ffa8c8;inactive_fg:#2e2100;divider_border:#8a5f00;seg_on_fg:#ffb000;seg_off_fg:#2a1d00;bar_fg:accent_fg;bar_bg:titlebar_bg;icon_fg:accent_fg;")   ; retro
+    ("sakura" "day" . ";bg:#fff4f6;fg:#4a2c35;border:#e39ab0;card_bg:bg;card_border:#e39ab0;titlebar_bg:#ffd9e3;text_fg:#4a2c35;text_sub_fg:#62404b;text_muted_fg:#7d5a66;accent_fg:#b8325e;accent_bg:#ffd1df;success_fg:#2f7a52;warning_fg:#9a5a10;danger_fg:#b5232f;purple_fg:#7a45a8;inactive_fg:#f2d4dc;divider_border:#d29aab;seg_on_fg:#b8325e;seg_off_fg:bg;bar_fg:accent_fg;bar_bg:titlebar_bg;icon_fg:accent_fg;")   ; sakura
+    ))
 
 (define theme-mode "night")        ; "day" or "night"
 (define theme-scheme "night")      ; the block of theme.css in use
@@ -162,17 +179,21 @@
 (define (theme-last-index s ch)
   (let loop ((i (- (string-length s) 1))) (cond ((< i 0) #f) ((char=? (string-ref s i) ch) i) (else (loop (- i 1))))))
 
-;; s without /* comments */
+;; s without /* comments */: the pieces between them (not a cell per character:
+;; a 3 KB file made 46 KB of garbage, too much for a large app's heap)
 (define (theme-uncomment s)
   (let ((n (string-length s)))
-    (let loop ((i 0) (acc '()) (in #f))
-      (cond ((>= i n) (list->string (reverse acc)))
-            ((and (not in) (< (+ i 1) n) (char=? (string-ref s i) #\/) (char=? (string-ref s (+ i 1)) #\*))
-             (loop (+ i 2) acc #t))
-            ((and in (< (+ i 1) n) (char=? (string-ref s i) #\*) (char=? (string-ref s (+ i 1)) #\/))
-             (loop (+ i 2) acc #f))
-            (in (loop (+ i 1) acc #t))
-            (else (loop (+ i 1) (cons (string-ref s i) acc) #f))))))
+    (let loop ((i 0) (start 0) (pieces '()))
+      (cond ((>= (+ i 1) n)
+             (let ((all (reverse (cons (substring s start n) pieces))))
+               (if (null? (cdr all)) (car all) (apply string-append all))))
+            ((and (char=? (string-ref s i) #\/) (char=? (string-ref s (+ i 1)) #\*))
+             (let skip ((j (+ i 2)))
+               (cond ((>= (+ j 1) n) (loop n n (cons (substring s start i) pieces)))
+                     ((and (char=? (string-ref s j) #\*) (char=? (string-ref s (+ j 1)) #\/))
+                      (loop (+ j 2) (+ j 2) (cons (substring s start i) pieces)))
+                     (else (skip (+ j 1))))))
+            (else (loop (+ i 1) start pieces))))))
 
 ;; "name, name { alias: value; ... }" blocks -> ((name (alias . value) ...) ...)
 (define (theme-parse text)
@@ -233,13 +254,31 @@
                   (gui-rgb (max 0 (min 255 (car p))) (max 0 (min 255 (cadr p))) (max 0 (min 255 (caddr p)))))))
           (else #f))))
 
+;; The value of alias in a built-in scheme's string (";bg:#000000;fg:#ffffff;"), #f
+(define (theme-preset-get text alias)
+  (let ((n (string-length text)) (m (string-length alias)))
+    (let loop ((i 0))                       ; i: a ';' that may start ";alias:"
+      (cond ((>= (+ i m 2) n) #f)
+            ((and (char=? (string-ref text (+ i m 1)) #\:)
+                  (let same ((k 0)) (or (= k m) (and (char=? (string-ref text (+ i 1 k)) (string-ref alias k)) (same (+ k 1))))))
+             (let ((end (let find ((j (+ i m 2))) (if (or (>= j n) (char=? (string-ref text j) #\;)) j (find (+ j 1))))))
+               (substring text (+ i m 2) end)))
+            (else (loop (let next ((j (+ i 1))) (if (or (>= j n) (char=? (string-ref text j) #\;)) j (next (+ j 1))))))))))
+
+;; The mode whose app defaults and built-in colors fill in: a built-in scheme's own
+;; (a dark one: night, even when used by day), else the mode
+(define (theme-base-mode)
+  (let ((p (assoc theme-scheme THEME-PRESETS))) (if p (cadr p) theme-mode)))
+
 ;; Steps 2-5 for exactly this alias: its value as written, or #f
 (define (theme-lookup alias)
-  (or (theme-block-get theme-app-css theme-scheme alias)
-      (theme-block-get theme-sys-css theme-scheme alias)
-      (theme-block-get theme-app-defaults theme-scheme alias)
-      (theme-block-get theme-app-defaults theme-mode alias)
-      (let ((d (assoc alias (if (string=? theme-mode "day") THEME-DAY THEME-NIGHT)))) (and d (cdr d)))))
+  (let ((base (theme-base-mode)) (p (assoc theme-scheme THEME-PRESETS)))
+    (or (theme-block-get theme-app-css theme-scheme alias)
+        (theme-block-get theme-sys-css theme-scheme alias)
+        (theme-block-get theme-app-defaults theme-scheme alias)
+        (theme-block-get theme-app-defaults base alias)
+        (and p (theme-preset-get (cddr p) alias))
+        (let ((d (assoc alias (if (string=? base "day") THEME-DAY THEME-NIGHT)))) (and d (cdr d))))))
 
 (define (theme-resolve name depth)
   (or (theme-literal name)
@@ -398,7 +437,10 @@
                       (* 900 (round->exact (/ (cond ((> d 50400) (- d 86400)) ((< d -50400) (+ d 86400)) (else d)) 900))))))))
   (set! theme-ticks (+ theme-ticks 1))
   (if (= (remainder theme-ticks 10) 0)
-      (let* ((files (theme-read!)) (mode (theme-pick-mode)) (changed (or files (not (string=? mode theme-mode)))))
+      (let* ((files (theme-read!)) (mode (theme-pick-mode))
+             ;; the scheme that mode uses (theme_day / theme_night): a new one is noticed too
+             (scheme (theme-setting (if (string=? mode "day") "theme_day" "theme_night") mode))
+             (changed (or files (not (string=? mode theme-mode)) (not (string=? scheme theme-scheme)))))
         (if changed (begin (set! theme-mode mode) (theme-apply!)))
         changed)
       #f))
@@ -937,7 +979,7 @@
 ;; A backward compatible change raises MINOR, an incompatible one MAJOR; an app
 ;; declares the version it needs in meta.ini ([app] applib = 1.0) and builds with
 ;; the same MAJOR and an equal or higher MINOR (tools/build_apps.py, the WebREPL).
-(define applib-version "1.1")
+(define applib-version "1.2")
 
 ;; 1. Fonts, layout, text -------------------------------------------------------
 
