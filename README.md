@@ -59,9 +59,9 @@ python tools/build_apps.py [--system-fonts] [--sync] [--target-api X.Y] [--msbc1
 ```
 This compiles each Scheme app into an MSBC binary package with embedded metadata and font ROM dependencies.
 Images are MSBC version 2 (each symbol name once, in a table: about a quarter smaller) with the
-instructions of API 1.15 (inline arithmetic, API procedures called by their permanent numbers from
-`tools/api/ids.json`, which only ever grows), which need firmware API 1.15; `--target-api 1.9`
-compiles calls for older firmware, `--msbc1` writes version 1. `python tools/msbc_stats.py <image>`
+instructions of API 1.16 (inline arithmetic, API procedures called by their permanent numbers from
+`tools/api/ids.json`, which only ever grows, superinstructions, self calls and named-let loops), which
+need firmware API 1.16; `--target-api 1.15` (or 1.14, 1.9) compiles for older firmware, `--msbc1` writes version 1. `python tools/msbc_stats.py <image>`
 shows where an image's bytes go.
 All outputs stay inside this repository: `dist/` (images, all-in-one sources, `index.json`,
 one `<id>.info.json` per app, `app_default_msbc.h`, `app_settings_msbc.h`), the copies in

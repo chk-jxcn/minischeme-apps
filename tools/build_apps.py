@@ -398,7 +398,7 @@ MSBC1 = False         # --msbc1: MSBC version 1 images (firmware before API 1.9)
 MSBC2_API = '1.9'     # the API that reads MSBC version 2
 TARGET_API = None     # --target-api X.Y (--no-inline-arith: 1.13, --msbc1: 1.8): None, the newest
 # what an image compiled for a target needs at least: the instructions the target allows
-INSTRUCTION_APIS = ('1.15', '1.14')   # API procedures by number + inline car..; inline arithmetic
+INSTRUCTION_APIS = ('1.16', '1.15', '1.14')   # API procedures by number + inline car..; inline arithmetic
 
 
 def image_api_floor():
