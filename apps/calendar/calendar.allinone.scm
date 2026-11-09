@@ -9,8 +9,8 @@
 ;;; id = calendar
 ;;; name = 万年历
 ;;; description = 时间、世界时间、日期、农历、节气、宜忌和倒计日；当月日历（含农历）；月相与太阳、月亮的方位和高度
-;;; version = 11
-;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
+;;; version = 12
+;;; api = 1.16 ; the device API it needs: 1.16 runs the instructions the build emits (superinstructions, self calls, named-let loops, inline cons ...; --target-api 1.15 or older for older firmware)
 ;;; applib = 1.1 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

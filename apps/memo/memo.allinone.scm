@@ -9,8 +9,8 @@
 ;;; id = memo
 ;;; name = 备忘录
 ;;; description = 待办和已完成的备忘，在设备网页的应用选项卡中添加、编辑、置顶；不需要代理
-;;; version = 10
-;;; api = 1.15 ; the device API it needs: 1.15 runs the instructions the build emits (API procedures by number, inline arithmetic, car, vector-ref ...; --target-api 1.9 for older firmware)
+;;; version = 11
+;;; api = 1.16 ; the device API it needs: 1.16 runs the instructions the build emits (superinstructions, self calls, named-let loops, inline cons ...; --target-api 1.15 or older for older firmware)
 ;;; applib = 1.1 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]
