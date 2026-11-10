@@ -231,9 +231,9 @@ python tools/build_apps.py hello          # one app; no names: every app
 The source is `gui.scm + infopages.scm + applib.scm (+ appweb.scm) + hello.scm`, compiled
 with the core's compiler (`tools/compile_to_hex`). Output: `apps/hello.msbc` (and `dist/`) with
 the gzipped `web.html` and `meta.ini` appended, `index.json` updated. The image is MSBC version 2
-(each symbol name once, in a table) with the instructions of API 1.16 (inline arithmetic, API
-procedures by number, superinstructions), which needs firmware API 1.16; `--target-api 1.15` (or
-older) compiles for older firmware, `--msbc1` writes version 1. The build prints the API the code needs (`hello: API 1.16 (N procedures)`),
+(each symbol name once, in a table) with the instructions of API 1.17 (inline arithmetic, API
+procedures by number, superinstructions, loop jumps), which needs firmware API 1.17; `--target-api 1.16` (or
+older) compiles for older firmware, `--msbc1` writes version 1. The build prints the API the code needs (`hello: API 1.17 (N procedures)`),
 fills in `[app] api` when missing, fails when `api` is declared lower than needed, and warns
 about reserved (unimplemented) APIs.
 

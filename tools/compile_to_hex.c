@@ -3,7 +3,8 @@
  * For the newest firmware API by default: MSBC version 2 (a symbol table, API 1.9), inline
  * arithmetic (1.14), API procedures by number and inline car cdr not null? pair? eq?
  * vector-ref (1.15), superinstructions, self calls, named-let loops, inline cons vector-set!
- * remainder quotient / (1.16). --target-api X.Y compiles for older firmware (what it runs);
+ * remainder quotient / (1.16), one-instruction loop jumps, operations with a local operand,
+ * (if (and ...)) without the boolean (1.17). --target-api X.Y compiles for older firmware;
  * --no-inline-arith is --target-api 1.13; --msbc1 writes version 1 for firmware before 1.9.
  * Used by tools/build_apps.py and tools/board.py. */
 #include "minischeme.h"

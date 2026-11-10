@@ -194,8 +194,8 @@ for _app in ('weather', 'news', ..., 'tide', 'medicine', 'myapp'):
 python tools/build_apps.py myapp
 ```
 
-The build prints `myapp: API 1.16 (N procedures)` and writes `apps/myapp.msbc` (MSBC version 2
-with the instructions of API 1.16; `--target-api 1.9` compiles for older firmware; `--msbc1`
+The build prints `myapp: API 1.17 (N procedures)` and writes `apps/myapp.msbc` (MSBC version 2
+with the instructions of API 1.17; `--target-api 1.9` compiles for older firmware; `--msbc1`
 writes the old format for firmware before 1.9). It fails on
 compile errors, on an `api` lower than the code needs, and warns about **reserved** (not
 implemented) procedures: treat that warning as an error.
@@ -292,7 +292,10 @@ with a web page) `web-join web-field web-json`.
   (API 1.15) are instructions, every other API procedure is called by its permanent number
   (API 1.15); since API 1.16 also `cons vector-set! remainder quotient /`, operands straight from
   local variables, calls of the procedure to itself, and loops of a named `let` that only calls
-  itself in tail position (a jump, no closure). Results and errors are those of the procedures. A local variable of such a name,
+  itself in tail position (a jump, no closure); since API 1.17 the jump of such a loop is one
+  instruction, arithmetic and comparisons take a local variable as their second operand,
+  `(vector-ref v i)` a local index, and `(if (and a b ...) ...)` tests each part without making
+  the boolean. Results and errors are those of the procedures. A local variable of such a name,
   and a global the same source defines or assigns (`(define (list . a) ...)` in your file or the
   library), stay ordinary calls; but a redefinition made elsewhere (another image, the REPL)
   does not change calls already compiled. Use your own names for your own procedures.
@@ -925,7 +928,7 @@ id = myapp                 ; = the folder and file names
 name = 我的应用             ; shown to the user
 description = 一句话说明
 version = 1                ; raise it with every change of the app's files (a test checks it against the newest release)
-api = 1.16                 ; the firmware API it needs (1.16: the instructions the build emits; the build checks it)
+api = 1.17                 ; the firmware API it needs (1.17: the instructions the build emits; the build checks it)
 applib = 1.0               ; the app library version it needs: the same MAJOR, an equal or higher MINOR (section 6)
 pages = 2
 page_ids = main, detail    ; English page names (combined apps address pages by them)
@@ -1252,8 +1255,11 @@ permanent number (no global lookup), and `car cdr not null? pair? eq? vector-ref
 about 14% smaller than with calls, arithmetic loops about 3 times faster, vector and list code
 about 2 times. API 1.16 adds superinstructions (local operands, self calls, named-let loops as
 jumps, inline `cons`, `vector-set!`, `remainder`, `quotient`, `/`): on the board another 1.3 to
-2 times. So every app declares `api = 1.16`. For older firmware: `python
-tools/build_apps.py --target-api 1.15 <app>` (1.14: arithmetic only, 1.9: calls) or `--msbc1 <app>` (before
+2 times. API 1.17 makes loop jumps one instruction, gives arithmetic, comparisons and
+`vector-ref` a local operand, and keeps the variables closures capture in a vector (reading one
+no longer walks a list): array and closure code another 1.2 to 1.6 times. So every app declares
+`api = 1.17`. For older firmware: `python
+tools/build_apps.py --target-api 1.16 <app>` (1.15, 1.14: arithmetic only, 1.9: calls) or `--msbc1 <app>` (before
 1.9) write calls (and the app can then declare its real, lower API).
 
 What an image is made of (the medicine app, 97.5 KB):
