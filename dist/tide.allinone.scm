@@ -9,8 +9,8 @@
 ;;; id = tide
 ;;; name = 潮汐
 ;;; description = 今天潮位曲线、当前潮高与涨落、高低潮时刻；应用代理按设备位置取全球潮汐模型，没有数据时用海口（秀英）官方月报表
-;;; version = 11
-;;; api = 1.16 ; the device API it needs: 1.16 runs the instructions the build emits (superinstructions, self calls, named-let loops, inline cons ...; --target-api 1.15 or older for older firmware)
+;;; version = 12
+;;; api = 1.17 ; the device API it needs: 1.17 runs the instructions the build emits (loop jumps, local operands, superinstructions, self calls ...; --target-api 1.16 or older for older firmware)
 ;;; applib = 1.1 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]

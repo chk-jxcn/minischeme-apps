@@ -9,8 +9,8 @@
 ;;; id = usage
 ;;; name = Token 用量
 ;;; description = Claude Code、Gemini CLI、Codex 在本机的5小时与7天 token 用量、额度、按小时/天趋势和模型分布
-;;; version = 8
-;;; api = 1.16 ; the device API it needs: 1.16 runs the instructions the build emits (superinstructions, self calls, named-let loops, inline cons ...; --target-api 1.15 or older for older firmware)
+;;; version = 9
+;;; api = 1.17 ; the device API it needs: 1.17 runs the instructions the build emits (loop jumps, local operands, superinstructions, self calls ...; --target-api 1.16 or older for older firmware)
 ;;; applib = 1.1 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
 ;;; 
 ;;; [fields]
