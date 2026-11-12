@@ -7,7 +7,7 @@
 ;;; id = settings
 ;;; name = 系统设置
 ;;; description = 设置模式（热点配网网页）、选择启动应用、网络/硬件/存储信息
-;;; version = 10
+;;; version = 11
 ;;; kind = system ; installed from the market as apps/settings.msbc, run from the hardware pages; never a boot app
 ;;; api = 1.17 ; the device API it needs: 1.17 runs the instructions the build emits (loop jumps, local operands, superinstructions, self calls ...; --target-api 1.16 or older for older firmware)
 ;;; applib = 1.0 ; the app library version it needs (apps/lib/, MAJOR.MINOR: the same MAJOR, an equal or higher MINOR)
@@ -633,6 +633,7 @@
 ;;;   设置模式      SoftAP + captive DNS + the settings web page
 ;;;   启动应用      which app the board starts ([system] boot_app)
 ;;;   网络 / 硬件 / 存储信息
+;;;   时区          automatic (the app server tells it from the network address) or a zone
 ;;;   退出设置      restart into the boot app
 ;;; Needs gui.scm loaded first (theme colors, fonts).
 ;;; =========================================================================
@@ -702,7 +703,7 @@
 
 ;; 2. State ---------------------------------------------------------------------------
 
-(define screen 'menu)                   ; menu apps market setup info-menu info reset confirm message error
+(define screen 'menu)                   ; menu apps market setup info-menu info reset tz confirm message error
 (define failure #f)                     ; (last-app-stats) when the app failed: why we are here
 (define sel 0)                          ; selected row of menu / apps
 (define info-page 0)                    ; 0 network, 1 hardware, 2 storage
@@ -735,12 +736,65 @@
           ((string=? (cadr (car as)) id) (caddr (car as)))
           (else (loop (cdr as))))))
 
+;; Time zones: (title rule). The rule is what config.ini [system] timezone holds: a POSIX TZ
+;; rule with the daylight saving changes (the firmware has no zone database), or "auto": the
+;; app server tells the zone of this network address (timezone_auto, timezone_place).
+;; The list is also the device page's (minischeme-esp32 main/setup_page.html): keep them alike.
+(define tz-zones
+  '(("UTC+8 北京、香港、台北、新加坡" "CST-8")
+    ("UTC+9 东京、首尔" "JST-9")
+    ("UTC+9:30 阿德莱德" "ACST-9:30ACDT,M10.1.0,M4.1.0/3")
+    ("UTC+10 悉尼、墨尔本" "AEST-10AEDT,M10.1.0,M4.1.0/3")
+    ("UTC+12 奥克兰" "NZST-12NZDT,M9.5.0,M4.1.0/3")
+    ("UTC-10 夏威夷" "HST10")
+    ("UTC-9 阿拉斯加" "AKST9AKDT,M3.2.0,M11.1.0")
+    ("UTC-8 洛杉矶、温哥华" "PST8PDT,M3.2.0,M11.1.0")
+    ("UTC-7 丹佛" "MST7MDT,M3.2.0,M11.1.0")
+    ("UTC-6 芝加哥" "CST6CDT,M3.2.0,M11.1.0")
+    ("UTC-5 纽约、多伦多" "EST5EDT,M3.2.0,M11.1.0")
+    ("UTC-3 圣保罗" "<-03>3")
+    ("UTC+0 协调世界时" "UTC0")
+    ("UTC+0 伦敦、里斯本" "GMT0BST,M3.5.0/1,M10.5.0")
+    ("UTC+1 巴黎、柏林、罗马" "CET-1CEST,M3.5.0,M10.5.0/3")
+    ("UTC+2 雅典、赫尔辛基" "EET-2EEST,M3.5.0/3,M10.5.0/4")
+    ("UTC+3 莫斯科、伊斯坦布尔" "MSK-3")
+    ("UTC+4 迪拜" "<+04>-4")
+    ("UTC+5 卡拉奇" "PKT-5")
+    ("UTC+5:30 新德里" "IST-5:30")
+    ("UTC+6 达卡" "<+06>-6")
+    ("UTC+7 曼谷、河内、雅加达" "<+07>-7")))
+
+(define (tz-current) (or (cfg "timezone") "auto"))
+(define (tz-auto?) (string=? (tz-current) "auto"))
+(define (tz-rows) (cons (list "自动（按网络位置）" "auto") tz-zones))
+(define (tz-place) (or (cfg "timezone_place") "还没有从应用服务器获取，暂用北京时间"))
+
+(define (tz-name)                        ; the chosen zone's title: stored, else from the list
+  (or (cfg "timezone_name")
+      (let loop ((zs tz-zones))
+        (cond ((null? zs) (tz-current))
+              ((string=? (cadr (car zs)) (tz-current)) (car (car zs)))
+              (else (loop (cdr zs)))))))
+
+(define (tz-dst? rule)                   ; a rule with daylight saving has its change dates after a comma
+  (let loop ((i 0))
+    (cond ((>= i (string-length rule)) #f)
+          ((char=? (string-ref rule i) #\,) #t)
+          (else (loop (+ i 1))))))
+
+(define (tz-index)                       ; the row of the zone in use (0: automatic, or not listed)
+  (let loop ((zs (tz-rows)) (i 0))
+    (cond ((null? zs) 0)
+          ((string=? (cadr (car zs)) (tz-current)) i)
+          (else (loop (cdr zs) (+ i 1))))))
+
 (define (menu-items)
   (list (list "设置模式" "开启热点，在手机或电脑上设置 WiFi、启动应用和应用配置")
         (list "启动应用" (string-append "当前：" (app-name-of (boot-app-path))))
         (list "应用更新" "检查并更新已安装的应用（新应用在设备网页安装）")
         (list "设备信息" "网络、硬件、存储")
         (list "恢复出厂" "清空程序 ROM、应用配置、文件系统或字库")
+        (list "时区" (if (tz-auto?) (string-append "自动：" (tz-place)) (tz-name)))
         (list "退出设置" (string-append "重启并运行 " (app-name-of (boot-app-path))))))
 
 ;; Second level: the information pages
@@ -800,6 +854,28 @@
   (render-footer HINT-LIST))
 
 (define (render-menu) (render-list "系统设置" (menu-items)))
+
+;; The time zones: the automatic one first, 7 rows a screen
+(define TZ-ROWS 7)
+
+(define (render-tz)
+  (render-header "时区")
+  (let* ((rows (tz-rows))
+         (total (length rows))
+         (current (tz-index))
+         (start (max 0 (min (- sel (- TZ-ROWS 1)) (- total TZ-ROWS)))))
+    (txt-right (- (scr-w) 70) 10 (string-append (number->string (+ sel 1)) "/" (number->string total)) theme-accent)
+    (let loop ((i start) (y (+ HDR-H 8)))
+      (if (and (< i total) (< i (+ start TZ-ROWS)))
+          (let ((z (list-ref rows i)))
+            (render-row y 56 (car z)
+                        (cond ((= i 0) (tz-place))
+                              ((tz-dst? (cadr z)) "有夏令时，自动切换")
+                              (else "没有夏令时"))
+                        (= i sel)
+                        (if (= i current) "当前" #f))
+            (loop (+ i 1) (+ y 56))))))
+  (render-footer "短按：下一个  长按：选择  中长按：返回"))
 
 ;; The reset about to run: what goes, and how to confirm
 (define (render-confirm)
@@ -1054,6 +1130,7 @@
         ((eq? screen 'info) (render-info))
         ((eq? screen 'info-menu) (render-list "设备信息" (info-menu-items)))
         ((eq? screen 'reset) (render-list "恢复出厂" (reset-items)))
+        ((eq? screen 'tz) (render-tz))
         ((eq? screen 'confirm) (render-confirm))
         ((eq? screen 'message) (render-message))
         ((eq? screen 'error) (render-error))
@@ -1079,6 +1156,7 @@
         ((= sel 2) (open-market))
         ((= sel 3) (set! apps (app-list)) (go 'info-menu))
         ((= sel 4) (go 'reset))
+        ((= sel 5) (go 'tz) (set! sel (tz-index)) (redraw))
         (else (restart-soon "正在重启" (string-append "即将运行 " (app-name-of (boot-app-path)))))))
 
 (define (choose-info-menu)
@@ -1091,6 +1169,13 @@
   (set! reset-sel sel)
   (set! screen 'confirm)
   (redraw))
+
+;; The zone of the selected row: the firmware uses it at once (the clock above changes)
+(define (choose-tz)
+  (let ((z (list-ref (tz-rows) sel)))
+    (config-set! "system" "timezone" (cadr z))
+    (config-set! "system" "timezone_name" (if (= sel 0) "" (car z)))
+    (back-to-menu 5)))
 
 ;; Back to the menu with item i selected
 (define (back-to-menu i) (go 'menu) (set! sel i) (redraw))
@@ -1147,6 +1232,7 @@
         ((eq? screen 'info) (set! info-page (remainder (+ info-page 1) 3)) (redraw))
         ((eq? screen 'info-menu) (set! sel (remainder (+ sel 1) (length (info-menu-items)))) (redraw))
         ((eq? screen 'reset) (set! sel (remainder (+ sel 1) (length (reset-items)))) (redraw))
+        ((eq? screen 'tz) (set! sel (remainder (+ sel 1) (length (tz-rows)))) (redraw))
         ((eq? screen 'confirm) (set! screen 'reset) (set! sel reset-sel) (redraw))   ; cancel
         ((and (eq? screen 'message) reset-failed) (set! reset-failed #f) (go 'reset))
         ((eq? screen 'error) (go 'menu))
@@ -1160,6 +1246,7 @@
         ((eq? screen 'info) (set! sel info-page) (set! screen 'info-menu) (redraw))
         ((eq? screen 'info-menu) (choose-info-menu))
         ((eq? screen 'reset) (choose-reset))
+        ((eq? screen 'tz) (choose-tz))
         ((eq? screen 'confirm) (run-reset))
         ((eq? screen 'error) (go 'menu))
         (else #f)))
@@ -1172,6 +1259,7 @@
         ((eq? screen 'info-menu) (back-to-menu 3))
         ((eq? screen 'info) (set! sel info-page) (set! screen 'info-menu) (redraw))
         ((eq? screen 'reset) (back-to-menu 4))
+        ((eq? screen 'tz) (back-to-menu 5))
         ((eq? screen 'confirm) (set! screen 'reset) (set! sel reset-sel) (redraw))   ; cancel
         ((eq? screen 'setup) (back-to-menu 0))
         ((and (eq? screen 'message) reset-failed) (set! reset-failed #f) (go 'reset))

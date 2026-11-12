@@ -343,7 +343,7 @@
   "id": "settings",
   "name": "系统设置",
   "description": "设置模式（热点配网网页）、选择启动应用、网络/硬件/存储信息",
-  "version": "10",
+  "version": "11",
   "api": "1.17",
   "extensions": "",
   "kind": "system",
@@ -351,9 +351,9 @@
   "page_ids": [],
   "web": false,
   "file": "settings.msbc",
-  "size": 30582,
+  "size": 32997,
   "scm": "settings.allinone.scm",
-  "hash": "e59d8280",
+  "hash": "9cf946dc",
   "applib": "1.0",
   "libs": [
    "gui"
