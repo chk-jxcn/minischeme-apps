@@ -1,8 +1,9 @@
 {
- "api": "1.18.0",
+ "api": "1.20.0",
  "extensions": {
   "esp32": "1.0.0",
-  "ble": "1.0.0"
+  "ble": "1.0.0",
+  "matrix": "1.0.0"
  },
  "entries": [
   {
@@ -667,6 +668,40 @@
    "returns": "An alist of integers: alloc-kb (allocated since start), minor-gcs, major-gcs, live-bytes and live-peak (tenured bytes after the last / largest GC), stack-peak, frame-peak, stack-slots, frame-slots (capacities), rom-bytes.",
    "example": "(map car (vm-stats))\n; => (alloc-kb minor-gcs major-gcs live-bytes live-peak stack-peak frame-peak stack-slots frame-slots rom-bytes)\n(integer? (cdr (assq 'minor-gcs (vm-stats))))  ; => #t",
    "since": "1.0.0",
+   "status": "stable",
+   "where": "all"
+  },
+  {
+   "name": "gc-pause",
+   "component": "vm",
+   "sig": "(gc-pause [ms])",
+   "desc": "Pauses the garbage collector: for ms milliseconds, or without ms until (gc-resume). For a stretch that must not be interrupted (an animation, a timed exchange with a device).",
+   "returns": "#t when the collector is paused (#f: a timed pause on a build without a clock). Raises unless ms is a positive integer.",
+   "example": "(gc-pause 500)                       ; no collection for the next half second\n(gc-pause)                           ; ... or until (gc-resume)\n(gc-resume)",
+   "since": "1.20.0",
+   "status": "stable",
+   "where": "all",
+   "notes": "Starting a pause runs one short minor collection. While paused nothing is freed, so memory only fills up: when the heap has no room left the pause ends by itself and the collector runs as usual (that collection is a full one). Allocation is a little slower during a pause. Calling it again while paused sets the new duration. Keep pauses short and allocate little inside them."
+  },
+  {
+   "name": "gc-resume",
+   "component": "vm",
+   "sig": "(gc-resume)",
+   "desc": "Ends a collector pause started by (gc-pause). Nothing is collected at once: the collector runs again when it is next needed.",
+   "returns": "#t when the collector was still paused, #f when it was not (never paused, the time was up, or the heap filled up).",
+   "example": "(gc-pause)\n(gc-resume)                          ; => #t\n(gc-resume)                          ; => #f",
+   "since": "1.20.0",
+   "status": "stable",
+   "where": "all"
+  },
+  {
+   "name": "gc-paused?",
+   "component": "vm",
+   "sig": "(gc-paused?)",
+   "desc": "Whether the garbage collector is paused now.",
+   "returns": "A boolean.",
+   "example": "(gc-paused?)                         ; => #f",
+   "since": "1.20.0",
    "status": "stable",
    "where": "all"
   },
@@ -5154,6 +5189,104 @@
    "status": "reserved",
    "ext": "ble",
    "where": "device"
+  },
+  {
+   "name": "matrix-size",
+   "component": "matrix",
+   "sig": "(matrix-size)",
+   "desc": "The size of the LED matrix.",
+   "returns": "A pair (columns . rows): (8 . 8).",
+   "example": "(let ((size (matrix-size)))\n  (* (car size) (cdr size)))          ; the number of LEDs",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device",
+   "notes": "An app that needs the matrix declares \"extensions = matrix 1.0\" in its meta.ini; (api-has? 'matrix-set) says whether this device has one."
+  },
+  {
+   "name": "matrix-set",
+   "component": "matrix",
+   "sig": "(matrix-set x y color)",
+   "desc": "Sets one pixel of the buffer; (matrix-show) sends the buffer to the LEDs.",
+   "returns": "#t; an error when x or y is outside 0..7 or color outside 0..#xffffff.",
+   "example": "(matrix-set 0 0 #xff0000)             ; top left: red\n(matrix-set 7 7 #x0000ff)             ; bottom right: blue\n(matrix-show)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device"
+  },
+  {
+   "name": "matrix-get",
+   "component": "matrix",
+   "sig": "(matrix-get x y)",
+   "desc": "The colour of one pixel of the buffer.",
+   "returns": "A number, #xRRGGBB; an error when x or y is outside 0..7.",
+   "example": "(matrix-get 0 0)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device"
+  },
+  {
+   "name": "matrix-fill",
+   "component": "matrix",
+   "sig": "(matrix-fill color)",
+   "desc": "Sets every pixel of the buffer to one colour; (matrix-show) sends it.",
+   "returns": "#t; an error when color is outside 0..#xffffff.",
+   "example": "(matrix-fill #x00ff00)\n(matrix-show)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device"
+  },
+  {
+   "name": "matrix-draw",
+   "component": "matrix",
+   "sig": "(matrix-draw colors)",
+   "desc": "Sets all 64 pixels from a vector or a list of colours, row by row from the top left, and shows them.",
+   "returns": "#t (#f when the LEDs could not be driven); an error unless colors holds exactly 64 numbers 0..#xffffff.",
+   "example": "(define picture (make-vector 64 0))\n(vector-set! picture 27 #xffff00)     ; x 3, y 3\n(matrix-draw picture)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device"
+  },
+  {
+   "name": "matrix-show",
+   "component": "matrix",
+   "sig": "(matrix-show)",
+   "desc": "Sends the buffer to the LEDs (about 2.5 ms).",
+   "returns": "#t, #f when the LEDs could not be driven.",
+   "example": "(matrix-fill 0)\n(matrix-set 3 4 #xffffff)\n(matrix-show)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device"
+  },
+  {
+   "name": "matrix-clear",
+   "component": "matrix",
+   "sig": "(matrix-clear)",
+   "desc": "Turns every LED off (clears the buffer and shows it).",
+   "returns": "#t, #f when the LEDs could not be driven.",
+   "example": "(matrix-clear)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device"
+  },
+  {
+   "name": "matrix-brightness",
+   "component": "matrix",
+   "sig": "(matrix-brightness [percent])",
+   "desc": "The brightness of the matrix, 0..100; with an argument sets it and shows the buffer again.",
+   "returns": "The brightness in percent; an error when percent is outside 0..100.",
+   "example": "(matrix-brightness 10)                ; dim\n(matrix-brightness)",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "matrix",
+   "where": "device",
+   "notes": "The colours of the buffer are scaled when they are sent: 100 is the most the firmware allows (about a third of what the LEDs can do: 64 LEDs at full power draw several amperes and heat the board within seconds), the start value is config.ini [matrix] matrix_brightness (25)."
   },
   {
    "name": "fasl-to-c",

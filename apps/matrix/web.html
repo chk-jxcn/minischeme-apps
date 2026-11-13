@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>矩阵灯</title>
+<!-- appweb -->
+<style>
+#grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;width:min(100%,360px);aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+#grid div{border-radius:5px;background:#181c24;border:1px solid #223041}
+#palette{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+#palette button{width:34px;min-height:34px;height:34px;padding:0;margin:0;border-radius:50%;border:2px solid var(--line)}
+#palette button.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+#custom{width:54px;min-height:34px;height:34px;padding:2px;flex:none}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.tools button{margin:0}
+#bright{flex:1 1 160px;min-height:0;padding:0}
+</style>
+</head>
+<body>
+<main>
+<section>
+<h2>画板 <span class="tag" id="state">读取中</span></h2>
+<div id="grid"></div>
+<div id="palette"></div>
+<div class="tools">
+  <input type="color" id="custom" value="#ff8800" title="自选颜色">
+  <button class="plain" id="eraser" onclick="pick('#000000')">橡皮</button>
+  <button class="plain" onclick="fillAll()">填满</button>
+  <button class="plain" onclick="clearAll()">清空</button>
+  <button class="plain" onclick="undo()">撤销</button>
+</div>
+<div class="desc" style="margin-top:8px">选一个颜色，按住鼠标（或手指）在格子上拖动上色，LED 矩阵同步显示；松开后自动保存。</div>
+</section>
+
+<section>
+<h2>亮度</h2>
+<div class="tools"><input type="range" id="bright" min="1" max="100" value="25"><span id="brightv" class="fit">25%</span></div>
+<div class="desc">100% 是固件允许的上限（防止发热）。</div>
+</section>
+</main>
+<script>
+const COLORS = ['#ff0000', '#ff8000', '#ffe000', '#00d000', '#00d0d0', '#0060ff', '#8000ff', '#ff40a0', '#ffffff', '#000000'];
+let pixels = new Array(64).fill('#000000');
+let color = COLORS[0], painting = false, changed = false, before = null, history = [];
+let sending = false, pending = null;   /* one call at a time: the newest picture waits for it */
+
+const cells = [];
+for (let i = 0; i < 64; i++) {
+  const d = document.createElement('div');
+  d.dataset.i = i;
+  $('grid').appendChild(d);
+  cells.push(d);
+}
+COLORS.forEach((c) => {
+  const b = document.createElement('button');
+  b.style.background = c;
+  b.dataset.c = c;
+  b.title = c === '#000000' ? '橡皮（熄灭）' : c;
+  b.onclick = () => pick(c);
+  $('palette').appendChild(b);
+});
+
+function show() {
+  cells.forEach((d, i) => { d.style.background = pixels[i] === '#000000' ? '' : pixels[i]; });
+}
+
+function pick(c) {
+  color = c;
+  document.querySelectorAll('#palette button').forEach((b) => b.classList.toggle('on', b.dataset.c === c));
+  if (!COLORS.includes(c)) $('custom').value = c;
+}
+
+const hex = () => pixels.map((c) => c.slice(1)).join('');
+
+function state(text, kind) {
+  $('state').textContent = text;
+  $('state').className = 'tag' + (kind ? ' ' + kind : '');
+}
+
+/* Sends the picture: `draw` while the mouse is down, `save` when a stroke ends */
+async function push(save) {
+  pending = save || pending === 'save' ? 'save' : 'draw';
+  if (sending) return;
+  sending = true;
+  while (pending) {
+    const name = pending;
+    pending = null;
+    try {
+      await appCall(name, {pixels: hex()});
+      state(name === 'save' ? '已保存' : '绘制中', 'ok');
+    } catch (e) {
+      state('发送失败', 'bad');
+      say(e.message, 'bad');
+    }
+  }
+  sending = false;
+}
+
+function paint(i) {
+  if (i == null || pixels[i] === color) return;
+  pixels[i] = color;
+  cells[i].style.background = color === '#000000' ? '' : color;
+  changed = true;
+  push(false);
+}
+
+/* The cell under the pointer (the gaps between cells count as cells), null outside the grid */
+function cellAt(e) {
+  const r = $('grid').getBoundingClientRect();
+  const x = Math.floor((e.clientX - r.left) * 8 / r.width), y = Math.floor((e.clientY - r.top) * 8 / r.height);
+  return x >= 0 && x < 8 && y >= 0 && y < 8 ? y * 8 + x : null;
+}
+
+function remember(old) {
+  history.push(old);
+  if (history.length > 30) history.shift();
+}
+
+/* A fast mouse skips cells between two events: every cell on the line from the last one is painted */
+let last = null;
+function paintTo(i) {
+  if (i == null) { last = null; return; }
+  if (last == null) { paint(i); last = i; return; }
+  let x = last % 8, y = last >> 3;
+  const x1 = i % 8, y1 = i >> 3, steps = Math.max(Math.abs(x1 - x), Math.abs(y1 - y));
+  for (let s = 1; s <= steps; s++) {
+    paint(Math.round(y + (y1 - y) * s / steps) * 8 + Math.round(x + (x1 - x) * s / steps));
+  }
+  last = i;
+}
+
+$('grid').addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  painting = true;
+  changed = false;
+  before = pixels.slice();
+  last = null;
+  paintTo(cellAt(e));
+});
+window.addEventListener('pointermove', (e) => { if (painting) paintTo(cellAt(e)); });
+function endStroke() {
+  if (!painting) return;
+  painting = false;
+  if (changed) { remember(before); push(true); }
+}
+window.addEventListener('pointerup', endStroke);
+window.addEventListener('pointercancel', endStroke);
+
+function replace(next) {
+  remember(pixels.slice());
+  pixels = next;
+  show();
+  push(true);
+}
+function fillAll() { replace(new Array(64).fill(color)); }
+function clearAll() { replace(new Array(64).fill('#000000')); }
+function undo() {
+  if (!history.length) return say('没有可撤销的操作', 'warn');
+  pixels = history.pop();
+  show();
+  push(true);
+}
+
+$('custom').addEventListener('input', (e) => pick(e.target.value));
+
+let brightTimer = 0;
+$('bright').addEventListener('input', (e) => {
+  $('brightv').textContent = e.target.value + '%';
+  clearTimeout(brightTimer);
+  brightTimer = setTimeout(() => attempt(() => appCall('brightness', {value: e.target.value})), 200);
+});
+
+async function load() {
+  await attempt(async () => {
+    const r = await appCall('get');
+    if (r.pixels && r.pixels.length === 384) {
+      pixels = r.pixels.match(/.{6}/g).map((c) => '#' + c.toLowerCase());
+    }
+    $('bright').value = r.brightness;
+    $('brightv').textContent = r.brightness + '%';
+    show();
+    state(r.matrix ? '已连接' : '这块板没有 LED 矩阵，只有屏幕预览', r.matrix ? 'ok' : 'warn');
+  });
+}
+
+pick(color);
+show();
+load();
+</script>
+</body>
+</html>
