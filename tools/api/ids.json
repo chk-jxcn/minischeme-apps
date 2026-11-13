@@ -423,6 +423,14 @@
   "ble-value-set!": 419,
   "ble-hid-connect": 420,
   "ble-mtu": 421,
-  "ble-rssi": 422
+  "ble-rssi": 422,
+  "matrix-size": 423,
+  "matrix-set": 424,
+  "matrix-get": 425,
+  "matrix-fill": 426,
+  "matrix-draw": 427,
+  "matrix-show": 428,
+  "matrix-clear": 429,
+  "matrix-brightness": 430
  }
 }
