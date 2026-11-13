@@ -94,7 +94,7 @@ def page_ids_glue(app_id):
 
 
 for _app in ('weather', 'news', 'stocks', 'usage', 'calendar', 'memo', 'futures', 'crypto', 'wxpusher', 'notifier', 'album',
-             'tide', 'medicine', 'bilibili', 'agenda'):
+             'tide', 'medicine', 'bilibili', 'agenda', 'thermo'):
     if os.path.exists(os.path.join(ROOT, 'apps', _app, f'{_app}.scm')):
         _web = [APP_WEB_LIB] if os.path.exists(os.path.join(ROOT, 'apps', _app, 'web.html')) else []
         _ids = page_ids_glue(_app)
