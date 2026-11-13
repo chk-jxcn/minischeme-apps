@@ -1,9 +1,10 @@
 {
- "api": "1.20.0",
+ "api": "1.21.0",
  "extensions": {
   "esp32": "1.0.0",
   "ble": "1.0.0",
-  "matrix": "1.0.0"
+  "matrix": "1.0.0",
+  "imu": "1.0.0"
  },
  "entries": [
   {
@@ -5287,6 +5288,43 @@
    "ext": "matrix",
    "where": "device",
    "notes": "The colours of the buffer are scaled when they are sent: 100 is the most the firmware allows (about a third of what the LEDs can do: 64 LEDs at full power draw several amperes and heat the board within seconds), the start value is config.ini [matrix] matrix_brightness (25)."
+  },
+  {
+   "name": "imu-accel",
+   "component": "imu",
+   "sig": "(imu-accel)",
+   "desc": "The acceleration along the three axes of the sensor; at rest that is gravity.",
+   "returns": "A list (x y z) of integers in mg (1000 is one g; the range is +-4000), or #f when the sensor does not answer.",
+   "example": "(let ((a (imu-accel)))\n  (if a (> (abs (caddr a)) 800) #f))  ; lying flat: gravity is along z",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "imu",
+   "where": "device",
+   "notes": "An app that needs the sensor declares \"extensions = imu 1.0\" in its meta.ini; (api-has? 'imu-accel) says whether this device has one. A read takes about 0.3 ms; calls within 4 ms share one read."
+  },
+  {
+   "name": "imu-gyro",
+   "component": "imu",
+   "sig": "(imu-gyro)",
+   "desc": "How fast the board turns around the three axes of the sensor.",
+   "returns": "A list (x y z) of integers in 0.1 degrees a second (the range is +-5120), or #f when the sensor does not answer.",
+   "example": "(imu-gyro)                            ; => (0 -1 2) at rest",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "imu",
+   "where": "device"
+  },
+  {
+   "name": "imu-temperature",
+   "component": "imu",
+   "sig": "(imu-temperature)",
+   "desc": "The sensor chip's temperature (warmer than the room: the board heats it).",
+   "returns": "An integer in 0.1 degrees Celsius, or #f when the sensor does not answer.",
+   "example": "(imu-temperature)                     ; => 312: 31.2 degrees",
+   "since": "1.0.0",
+   "status": "stable",
+   "ext": "imu",
+   "where": "device"
   },
   {
    "name": "fasl-to-c",

@@ -6,6 +6,14 @@
 <title>矩阵灯</title>
 <!-- appweb -->
 <style>
+#modes{display:flex;flex-wrap:wrap;gap:6px}
+#modes button{margin:0}
+#modes button:not(.on){background:transparent;border-color:var(--line)}
+#colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 14px;margin-top:4px}
+#colors .c{display:flex;align-items:center;gap:8px}
+#colors .c span{flex:1;min-width:0}
+#colors input[type=color]{width:46px;min-height:30px;height:30px;padding:2px;flex:none}
+#colors button{margin:0}
 #grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;width:min(100%,360px);aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
 #grid div{border-radius:5px;background:#181c24;border:1px solid #223041}
 #palette{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
@@ -14,23 +22,58 @@
 #custom{width:54px;min-height:34px;height:34px;padding:2px;flex:none}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .tools button{margin:0}
-#bright{flex:1 1 160px;min-height:0;padding:0}
+.tools input[type=range]{flex:1 1 160px;min-height:0;padding:0}
+.tools select{width:auto;flex:none}
+#strip{display:block;max-width:100%;overflow-x:auto;background:#0e151e;border:1px solid var(--line);border-radius:6px;margin-top:10px;padding:4px}
+#strip canvas{display:block;image-rendering:pixelated}
 </style>
 </head>
 <body>
 <main>
 <section>
-<h2>画板 <span class="tag" id="state">读取中</span></h2>
+<h2>模式 <span class="tag" id="state">读取中</span></h2>
+<div id="modes"></div>
+<div class="desc" style="margin-top:8px">“自动轮播”时各模式轮流显示，板上的按键换下一个；选其它的就一直显示那一种。</div>
+<h3>颜色</h3>
+<div id="colors"></div>
+<div class="desc" style="margin-top:6px">每种模式可以定一个颜色；点“默认”恢复它自己的配色。</div>
+</section>
+
+<section>
+<h2>跑马灯</h2>
+<div class="row">
+  <input id="text" maxlength="80" placeholder="要滚动显示的文字，中文英文都可以">
+  <button onclick="sendText()">显示</button>
+</div>
+<div id="strip"><canvas id="stripc" height="32" width="8"></canvas></div>
+<div class="tools"><span class="fit">速度</span><input type="range" id="speed" min="30" max="500" step="10" value="100" style="direction:rtl"><span id="speedv" class="fit">100 毫秒/列</span></div>
+<div class="desc">文字由这个网页画成 8 行高的点阵再发给设备：英文数字用 5×7 点阵字，汉字缩到 8×8，笔画多的字会糊。</div>
+</section>
+
+<section>
+<h2>画板</h2>
 <div id="grid"></div>
 <div id="palette"></div>
 <div class="tools">
   <input type="color" id="custom" value="#ff8800" title="自选颜色">
-  <button class="plain" id="eraser" onclick="pick('#000000')">橡皮</button>
+  <button class="plain" onclick="pick('#000000')">橡皮</button>
   <button class="plain" onclick="fillAll()">填满</button>
   <button class="plain" onclick="clearAll()">清空</button>
   <button class="plain" onclick="undo()">撤销</button>
 </div>
-<div class="desc" style="margin-top:8px">选一个颜色，按住鼠标（或手指）在格子上拖动上色，LED 矩阵同步显示；松开后自动保存。</div>
+<div class="desc" style="margin-top:8px">左键按住拖动上色，右键点击或拖动擦除（触屏用“橡皮”）；LED 矩阵同步显示，松开后自动保存并切到画板模式。</div>
+</section>
+
+<section id="imu" style="display:none">
+<h2>小球（姿态传感器）</h2>
+<div class="tools">
+  <span class="fit">方向</span>
+  <select id="turn"><option value="0">0°</option><option value="1">90°</option><option value="2">180°</option><option value="3">270°</option></select>
+  <label class="check"><input type="checkbox" id="mirror">左右镜像</label>
+  <button class="plain" onclick="load()">读取传感器</button>
+  <span id="accel" class="fit desc"></span>
+</div>
+<div class="desc" style="margin-top:8px">小球应该往板子低的一边滚。如果方向不对，改“方向”和“镜像”直到对为止。</div>
 </section>
 
 <section>
@@ -40,15 +83,185 @@
 </section>
 </main>
 <script>
+const MODES = [['auto', '自动轮播'], ['clock', '时钟'], ['rainbow', '彩虹'], ['rain', '数字雨'], ['life', '生命游戏'],
+               ['fire', '火焰'], ['text', '跑马灯'], ['ball', '小球'], ['drawing', '画板']];
+const PAGES = ['clock', 'rainbow', 'rain', 'life', 'fire', 'drawing', 'text', 'ball'];   /* the device's order */
 const COLORS = ['#ff0000', '#ff8000', '#ffe000', '#00d000', '#00d0d0', '#0060ff', '#8000ff', '#ff40a0', '#ffffff', '#000000'];
+let mode = 'auto', modeColors = {};
 let pixels = new Array(64).fill('#000000');
-let color = COLORS[0], painting = false, changed = false, before = null, history = [];
+let color = COLORS[0], painting = false, changed = false, before = null, undoList = [], strokeColor = color;
 let sending = false, pending = null;   /* one call at a time: the newest picture waits for it */
+
+function state(text, kind) {
+  $('state').textContent = text;
+  $('state').className = 'tag' + (kind ? ' ' + kind : '');
+}
+
+/* Modes ------------------------------------------------------------------------------------ */
+
+MODES.forEach(([id, name]) => {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.dataset.m = id;
+  b.onclick = () => setMode(id);
+  $('modes').appendChild(b);
+});
+
+function showMode() {
+  document.querySelectorAll('#modes button').forEach((b) => b.classList.toggle('on', b.dataset.m === mode));
+}
+
+async function setMode(id) {
+  await attempt(async () => {
+    await appCall('mode', {value: id});
+    mode = id;
+    showMode();
+    state('已切换', 'ok');
+  });
+}
+
+MODES.forEach(([id, name]) => {
+  if (id === 'auto' || id === 'drawing') return;
+  const d = document.createElement('div');
+  d.className = 'c';
+  d.innerHTML = `<span>${name}</span><input type="color" id="col-${id}" value="#00d0d0"><span class="tag" id="colv-${id}">默认</span>` +
+                `<button class="small plain" id="cold-${id}">默认</button>`;
+  $('colors').appendChild(d);
+  let timer = 0;
+  $('col-' + id).addEventListener('input', (e) => {   /* while the picker is dragged: the last value */
+    const v = e.target.value.slice(1).toLowerCase();
+    clearTimeout(timer);
+    timer = setTimeout(() => setColor(id, v), 150);
+  });
+  $('cold-' + id).onclick = () => setColor(id, '');
+});
+
+function showColors() {
+  MODES.forEach(([id]) => {
+    if (!$('col-' + id)) return;
+    const v = modeColors[id] || '';
+    if (v) $('col-' + id).value = '#' + v;
+    $('colv-' + id).textContent = v ? '#' + v : '默认';
+  });
+}
+
+async function setColor(id, v) {
+  await attempt(async () => {
+    await appCall('color', {page: id, value: v});
+    modeColors[id] = v;
+    showColors();
+  });
+}
+
+/* Marquee ---------------------------------------------------------------------------------- */
+
+/* 5 x 7 glyphs of ASCII 32..126: five columns each, bit 0 is the top row */
+const FONT =
+  '0000000000' + '00005F0000' + '0007000700' + '147F147F14' + '242A7F2A12' + '2313086462' + '3649552250' + '0005030000' +
+  '001C224100' + '0041221C00' + '14083E0814' + '08083E0808' + '0050300000' + '0808080808' + '0060600000' + '2010080402' +
+  '3E5149453E' + '00427F4000' + '4261514946' + '2141454B31' + '1814127F10' + '2745454539' + '3C4A494930' + '0171090503' +
+  '3649494936' + '064949291E' + '0036360000' + '0056360000' + '0814224100' + '1414141414' + '0041221408' + '0201510906' +
+  '324979413E' + '7E1111117E' + '7F49494936' + '3E41414122' + '7F4141221C' + '7F49494941' + '7F09090901' + '3E4149497A' +
+  '7F0808087F' + '00417F4100' + '2040413F01' + '7F08142241' + '7F40404040' + '7F020C027F' + '7F0408107F' + '3E4141413E' +
+  '7F09090906' + '3E4151215E' + '7F09192946' + '4649494931' + '01017F0101' + '3F4040403F' + '1F2040201F' + '3F4038403F' +
+  '6314081463' + '0708700807' + '6151494543' + '007F414100' + '0204081020' + '0041417F00' + '0402010204' + '4040404040' +
+  '0001020400' + '2054545478' + '7F48444438' + '3844444420' + '384444487F' + '3854545418' + '087E090102' + '0C5252523E' +
+  '7F08040478' + '00447D4000' + '2040443D00' + '7F10284400' + '00417F4000' + '7C04180478' + '7C08040478' + '3844444438' +
+  '7C14141408' + '081414187C' + '7C08040408' + '4854545420' + '043F444020' + '3C4040207C' + '1C2040201C' + '3C4030403C' +
+  '4428102844' + '0C5050503C' + '4464544C44' + '0008364100' + '00007F0000' + '0041360800' + '0804081008';
+
+function trim(cols) {
+  while (cols.length && !cols[0]) cols.shift();
+  while (cols.length && !cols[cols.length - 1]) cols.pop();
+  return cols;
+}
+
+/* A character that is not ASCII: drawn large, then each 8 x 8 block becomes one LED */
+const glyphCanvas = document.createElement('canvas');
+glyphCanvas.width = 96;
+glyphCanvas.height = 64;
+function drawnGlyph(ch) {
+  const g = glyphCanvas.getContext('2d', {willReadFrequently: true});
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, 96, 64);
+  g.fillStyle = '#fff';
+  g.font = '58px "Microsoft YaHei","PingFang SC","Noto Sans CJK SC","SimHei",sans-serif';
+  g.textBaseline = 'middle';
+  g.fillText(ch, 2, 33);
+  const d = g.getImageData(0, 0, 96, 64).data, cols = [];
+  for (let x = 0; x < 12; x++) {
+    let mask = 0;
+    for (let y = 0; y < 8; y++) {
+      let sum = 0;
+      for (let v = 0; v < 8; v++) for (let u = 0; u < 8; u++) sum += d[((y * 8 + v) * 96 + x * 8 + u) * 4];
+      if (sum > 64 * 255 * 0.3) mask |= 1 << y;
+    }
+    cols.push(mask);
+  }
+  return trim(cols);
+}
+
+/* text -> columns (numbers 0..255, bit r is row r) */
+function rasterize(text) {
+  const cols = [];
+  for (const ch of text) {
+    const code = ch.codePointAt(0);
+    let glyph;
+    if (ch === ' ' || ch === '　') glyph = [0, 0, 0];
+    else if (code >= 33 && code <= 126) {
+      glyph = trim([0, 1, 2, 3, 4].map((i) => parseInt(FONT.substr((code - 32) * 10 + i * 2, 2), 16)));
+    } else glyph = drawnGlyph(ch);
+    if (!glyph.length) glyph = [0, 0];
+    if (cols.length) cols.push(0);
+    cols.push(...glyph);
+  }
+  return cols.slice(0, 600);
+}
+
+const colsHex = (cols) => cols.map((c) => c.toString(16).padStart(2, '0')).join('');
+
+function showStrip(cols) {
+  const c = $('stripc'), n = Math.max(cols.length, 8);
+  c.width = n * 6;
+  c.height = 48;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0e151e';
+  g.fillRect(0, 0, c.width, c.height);
+  cols.forEach((m, x) => {
+    for (let y = 0; y < 8; y++) {
+      g.fillStyle = m >> y & 1 ? '#' + (modeColors.text || '62d0f0') : '#182230';
+      g.fillRect(x * 6 + 1, y * 6 + 1, 4, 4);
+    }
+  });
+}
+
+$('text').addEventListener('input', () => showStrip(rasterize($('text').value)));
+$('text').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendText(); });
+
+async function sendText() {
+  const text = $('text').value.replace(/[\r\n]/g, ' ');
+  const cols = rasterize(text);
+  if (!cols.length) return say('先输入文字', 'warn');
+  await attempt(async () => {
+    await appCall('text', {text, cols: colsHex(cols)});
+    mode = 'text';
+    showMode();
+    say('已发送，设备切到跑马灯', 'ok');
+  });
+}
+
+let speedTimer = 0;
+$('speed').addEventListener('input', (e) => {
+  $('speedv').textContent = e.target.value + ' 毫秒/列';
+  clearTimeout(speedTimer);
+  speedTimer = setTimeout(() => attempt(() => appCall('speed', {value: e.target.value})), 200);
+});
+
+/* Drawing ---------------------------------------------------------------------------------- */
 
 const cells = [];
 for (let i = 0; i < 64; i++) {
   const d = document.createElement('div');
-  d.dataset.i = i;
   $('grid').appendChild(d);
   cells.push(d);
 }
@@ -73,11 +286,6 @@ function pick(c) {
 
 const hex = () => pixels.map((c) => c.slice(1)).join('');
 
-function state(text, kind) {
-  $('state').textContent = text;
-  $('state').className = 'tag' + (kind ? ' ' + kind : '');
-}
-
 /* Sends the picture: `draw` while the mouse is down, `save` when a stroke ends */
 async function push(save) {
   pending = save || pending === 'save' ? 'save' : 'draw';
@@ -89,6 +297,7 @@ async function push(save) {
     try {
       await appCall(name, {pixels: hex()});
       state(name === 'save' ? '已保存' : '绘制中', 'ok');
+      if (name === 'save') { mode = 'drawing'; showMode(); }
     } catch (e) {
       state('发送失败', 'bad');
       say(e.message, 'bad');
@@ -98,9 +307,9 @@ async function push(save) {
 }
 
 function paint(i) {
-  if (i == null || pixels[i] === color) return;
-  pixels[i] = color;
-  cells[i].style.background = color === '#000000' ? '' : color;
+  if (pixels[i] === strokeColor) return;
+  pixels[i] = strokeColor;
+  cells[i].style.background = strokeColor === '#000000' ? '' : strokeColor;
   changed = true;
   push(false);
 }
@@ -112,28 +321,30 @@ function cellAt(e) {
   return x >= 0 && x < 8 && y >= 0 && y < 8 ? y * 8 + x : null;
 }
 
-function remember(old) {
-  history.push(old);
-  if (history.length > 30) history.shift();
-}
-
 /* A fast mouse skips cells between two events: every cell on the line from the last one is painted */
 let last = null;
 function paintTo(i) {
   if (i == null) { last = null; return; }
   if (last == null) { paint(i); last = i; return; }
-  let x = last % 8, y = last >> 3;
-  const x1 = i % 8, y1 = i >> 3, steps = Math.max(Math.abs(x1 - x), Math.abs(y1 - y));
+  const x = last % 8, y = last >> 3, x1 = i % 8, y1 = i >> 3, steps = Math.max(Math.abs(x1 - x), Math.abs(y1 - y));
   for (let s = 1; s <= steps; s++) {
     paint(Math.round(y + (y1 - y) * s / steps) * 8 + Math.round(x + (x1 - x) * s / steps));
   }
   last = i;
 }
 
+function remember(old) {
+  undoList.push(old);
+  if (undoList.length > 30) undoList.shift();
+}
+
+$('grid').addEventListener('contextmenu', (e) => e.preventDefault());   /* the right button erases */
 $('grid').addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 && e.button !== 2) return;
   e.preventDefault();
   painting = true;
   changed = false;
+  strokeColor = e.button === 2 ? '#000000' : color;
   before = pixels.slice();
   last = null;
   paintTo(cellAt(e));
@@ -156,13 +367,22 @@ function replace(next) {
 function fillAll() { replace(new Array(64).fill(color)); }
 function clearAll() { replace(new Array(64).fill('#000000')); }
 function undo() {
-  if (!history.length) return say('没有可撤销的操作', 'warn');
-  pixels = history.pop();
+  if (!undoList.length) return say('没有可撤销的操作', 'warn');
+  pixels = undoList.pop();
   show();
   push(true);
 }
 
 $('custom').addEventListener('input', (e) => pick(e.target.value));
+
+/* Sensor and brightness -------------------------------------------------------------------- */
+
+async function setTilt() {
+  const v = Number($('turn').value) + ($('mirror').checked ? 4 : 0);
+  await attempt(() => appCall('tilt', {value: v}));
+}
+$('turn').addEventListener('change', setTilt);
+$('mirror').addEventListener('change', setTilt);
 
 let brightTimer = 0;
 $('bright').addEventListener('input', (e) => {
@@ -177,15 +397,28 @@ async function load() {
     if (r.pixels && r.pixels.length === 384) {
       pixels = r.pixels.match(/.{6}/g).map((c) => '#' + c.toLowerCase());
     }
+    mode = r.mode;
+    PAGES.forEach((id, i) => { modeColors[id] = (r.colors && r.colors[i]) || ''; });
     $('bright').value = r.brightness;
     $('brightv').textContent = r.brightness + '%';
+    $('speed').value = r.speed;
+    $('speedv').textContent = r.speed + ' 毫秒/列';
+    if (document.activeElement !== $('text')) $('text').value = r.text || '';
+    showStrip(rasterize($('text').value));
+    $('imu').style.display = r.imu ? '' : 'none';
+    $('turn').value = String(r.tilt % 4);
+    $('mirror').checked = r.tilt >= 4;
+    $('accel').textContent = r.accel ? `x ${r.accel[0]}  y ${r.accel[1]}  z ${r.accel[2]}（mg）` : '';
     show();
+    showMode();
+    showColors();
     state(r.matrix ? '已连接' : '这块板没有 LED 矩阵，只有屏幕预览', r.matrix ? 'ok' : 'warn');
   });
 }
 
 pick(color);
 show();
+showMode();
 load();
 </script>
 </body>

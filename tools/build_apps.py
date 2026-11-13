@@ -261,7 +261,9 @@ def sanitize_config(app_id, meta, quiet=False):
 def app_meta(app_id, source_text, uses_lib=True):
     """apps/<id>/meta.ini with [app] api (and extensions) set to what the code
     needs: added when missing; a build error when declared lower, when newer
-    than this firmware API, or when a used extension is not declared. [app]
+    than this firmware API, or when a used extension is not declared.
+    [app] optional_extensions names extensions the app can do without (it
+    guards their procedures with api-has?): they are not required. [app]
     applib (an app built with apps/lib/): added as this library's version when
     missing; a build error when this library does not serve the declared one."""
     import api as A
@@ -292,6 +294,9 @@ def app_meta(app_id, source_text, uses_lib=True):
         sys.exit(f'{app_id}: meta.ini needs applib {declared_lib.group(1)}, but apps/lib/ is {lib}')
     if uses_lib and not declared_lib:
         add.append(f'applib = {lib}')
+    optional = re.search(r'(?m)^optional_extensions\s*=\s*([^;#\n]*)', meta)
+    optional = {x.strip() for x in optional.group(1).split(',')} if optional else set()
+    exts = [x for x in exts if x not in optional]
     declared_ext = re.search(r'(?m)^extensions\s*=\s*([^;#\n]*)', meta)
     have = {x.strip().split(' ')[0] for x in declared_ext.group(1).split(',')} if declared_ext else set()
     missing = [x for x in exts if x not in have]

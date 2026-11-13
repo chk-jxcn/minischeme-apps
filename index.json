@@ -201,25 +201,27 @@
  {
   "id": "matrix",
   "name": "矩阵灯",
-  "description": "8×8 彩色 LED 矩阵上的五种效果（滚动时钟、彩虹、数字雨、生命游戏、火焰）和一块画板，按键切换或自动轮播；画板在设备网页的应用选项卡里用鼠标或手指画；需要带 LED 矩阵的板子（ESP32-S3-Matrix），其它板子只在屏幕上显示预览；不需要联网",
-  "version": "1",
+  "description": "8×8 彩色 LED 矩阵上的八种模式：滚动时钟、彩虹、数字雨、生命游戏、火焰、画板、跑马灯文字、随倾斜滚动的小球；在设备网页的应用选项卡里选模式、设颜色、用鼠标画画、输入跑马灯文字；需要带 LED 矩阵的板子（ESP32-S3-Matrix）；不需要联网",
+  "version": "2",
   "api": "1.17",
   "extensions": "matrix 1.0",
   "kind": "app",
-  "pages": 6,
+  "pages": 8,
   "page_ids": [
    "clock",
    "rainbow",
    "rain",
    "life",
    "fire",
-   "drawing"
+   "drawing",
+   "text",
+   "ball"
   ],
   "web": true,
   "file": "matrix.msbc",
-  "size": 53006,
+  "size": 62491,
   "scm": "matrix.allinone.scm",
-  "hash": "f9fcc84a",
+  "hash": "9b4e1b98",
   "applib": "1.1",
   "libs": [
    "gui",

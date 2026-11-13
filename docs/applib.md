@@ -300,6 +300,7 @@ page headless: `python tools/sim.py --app my_app.scm --wait 3 --press short --sh
 | `pages` | Page count, for app lists only (not checked against the code). |
 | `api` | Device API the code needs, `major.minor` (`1.0`). Added by the build when missing; the build fails when it is lower than the code needs; install and boot refuse an incompatible firmware. |
 | `extensions` | Extension APIs used, e.g. `esp32 1.0` (comma-separated). Added by the build when missing. |
+| `optional_extensions` | Extensions the app can do without, e.g. `imu` (comma-separated ids): the build does not require them. The app guards their procedures with `(api-has? "name")`. |
 
 ### `[fields]`: the settings form
 

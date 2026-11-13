@@ -19,13 +19,14 @@ Hardware-specific procedures are extension APIs (ext='esp32'): versioned on
 their own, present only on devices that have them (EXTENSIONS below).
 """
 
-API_VERSION = '1.20.0'  # 1.20: gc-pause, gc-resume, gc-paused?; 1.19: the matrix extension (8 x 8 RGB LED matrix); 1.18: time-set! (the clock without network time), the ble extension; 1.17: OP_LOOP, operations with a local second operand, vector-ref with a local index, (if (and ...)) without the boolean; 1.16: superinstructions (local operands, OP_CALL_SELF, named-let loops, inline cons vector-set! remainder quotient /), immediate flonums; 1.15: API procedures called by number (OP_CALL_PRIM, api/ids.json), inline car cdr not null? pair? eq? vector-ref; 1.14: inline arithmetic instructions (OP_ADD..OP_NUM_EQ); 1.13: app-member-folder, members' schedules; 1.12: fs-download on-done; 1.11: font-server, emoji (UTF-8 above U+FFFF); 1.10: fs-download; 1.9: MSBC 2
+API_VERSION = '1.21.0'  # 1.21: the imu extension (accelerometer / gyroscope); 1.20: gc-pause, gc-resume, gc-paused?; 1.19: the matrix extension (8 x 8 RGB LED matrix); 1.18: time-set! (the clock without network time), the ble extension; 1.17: OP_LOOP, operations with a local second operand, vector-ref with a local index, (if (and ...)) without the boolean; 1.16: superinstructions (local operands, OP_CALL_SELF, named-let loops, inline cons vector-set! remainder quotient /), immediate flonums; 1.15: API procedures called by number (OP_CALL_PRIM, api/ids.json), inline car cdr not null? pair? eq? vector-ref; 1.14: inline arithmetic instructions (OP_ADD..OP_NUM_EQ); 1.13: app-member-folder, members' schedules; 1.12: fs-download on-done; 1.11: font-server, emoji (UTF-8 above U+FFFF); 1.10: fs-download; 1.9: MSBC 2
 
 # Extension APIs and their versions
 EXTENSIONS = {
     'esp32': ('1.0.0', 'ESP32 chip features (Espressif SoC only)'),
     'ble': ('1.0.0', 'Bluetooth Low Energy (a firmware with the stack, started by config.ini [bluetooth] bt_enabled = 1)'),
     'matrix': ('1.0.0', 'RGB LED matrix (a board with one: the Waveshare ESP32-S3-Matrix, 8 x 8)'),
+    'imu': ('1.0.0', 'Accelerometer and gyroscope (a board with a QMI8658: the Waveshare ESP32-S3-Matrix)'),
 }
 
 # Entry status

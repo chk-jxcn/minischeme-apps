@@ -434,6 +434,9 @@
   "matrix-brightness": 430,
   "gc-pause": 431,
   "gc-resume": 432,
-  "gc-paused?": 433
+  "gc-paused?": 433,
+  "imu-accel": 434,
+  "imu-gyro": 435,
+  "imu-temperature": 436
  }
 }
