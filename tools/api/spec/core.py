@@ -668,6 +668,48 @@ high-score                           ; => 120
 (integer? (cdr (assq 'minor-gcs (vm-stats))))  ; => #t
 ''',
     ),
+    api('gc-pause', 'vm',
+        sig='(gc-pause [ms])',
+        desc='Pauses the garbage collector: for ms milliseconds, or without ms until (gc-resume). For a stretch '
+             'that must not be interrupted (an animation, a timed exchange with a device).',
+        returns='#t when the collector is paused (#f: a timed pause on a build without a clock). Raises unless ms '
+                'is a positive integer.',
+        example='''
+(gc-pause 500)                       ; no collection for the next half second
+(gc-pause)                           ; ... or until (gc-resume)
+(gc-resume)
+''',
+        check=False,
+        since='1.20.0',
+        notes='Starting a pause runs one short minor collection. While paused nothing is freed, so memory only '
+              'fills up: when the heap has no room left the pause ends by itself and the collector runs as usual '
+              '(that collection is a full one). Allocation is a little slower during a pause. Calling it again '
+              'while paused sets the new duration. Keep pauses short and allocate little inside them.',
+    ),
+    api('gc-resume', 'vm',
+        sig='(gc-resume)',
+        desc='Ends a collector pause started by (gc-pause). Nothing is collected at once: the collector runs '
+             'again when it is next needed.',
+        returns='#t when the collector was still paused, #f when it was not (never paused, the time was up, or '
+                'the heap filled up).',
+        example='''
+(gc-pause)
+(gc-resume)                          ; => #t
+(gc-resume)                          ; => #f
+''',
+        check=False,
+        since='1.20.0',
+    ),
+    api('gc-paused?', 'vm',
+        sig='(gc-paused?)',
+        desc='Whether the garbage collector is paused now.',
+        returns='A boolean.',
+        example='''
+(gc-paused?)                         ; => #f
+''',
+        check=False,
+        since='1.20.0',
+    ),
     api('vm-stack-trace', 'vm',
         sig='(vm-stack-trace [on?])',
         desc='Query or enable/disable stack trace capture upon errors (enabled by default in WASM, disabled on hardware).',

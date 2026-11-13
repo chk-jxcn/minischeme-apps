@@ -431,6 +431,9 @@
   "matrix-draw": 427,
   "matrix-show": 428,
   "matrix-clear": 429,
-  "matrix-brightness": 430
+  "matrix-brightness": 430,
+  "gc-pause": 431,
+  "gc-resume": 432,
+  "gc-paused?": 433
  }
 }
