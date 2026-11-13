@@ -393,6 +393,33 @@
   "web_page": ""
  },
  {
+  "id": "thermo",
+  "name": "蓝牙温湿度",
+  "description": "用蓝牙读取米家温湿度计（LYWSD03MMC）的温度、湿度和电量，带温度曲线；版面随屏幕宽度变化（172 到 320 像素）；需要带蓝牙的固件，不需要联网",
+  "version": "1",
+  "api": "1.17",
+  "extensions": "ble 1.0",
+  "kind": "app",
+  "pages": 1,
+  "page_ids": [
+   "now"
+  ],
+  "web": false,
+  "file": "thermo.msbc",
+  "size": 44259,
+  "scm": "thermo.allinone.scm",
+  "hash": "080d18fe",
+  "applib": "1.1",
+  "libs": [
+   "gui",
+   "infopages",
+   "applib"
+  ],
+  "source": "apps/thermo/thermo.scm",
+  "meta": "apps/thermo/meta.ini",
+  "web_page": ""
+ },
+ {
   "id": "tide",
   "name": "潮汐",
   "description": "今天潮位曲线、当前潮高与涨落、高低潮时刻；应用代理按设备位置取全球潮汐模型，没有数据时用海口（秀英）官方月报表",
