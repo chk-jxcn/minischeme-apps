@@ -339,6 +339,19 @@ APIS = [
 ''',
         status=RESERVED,
     ),
+    api('time-set!', 'time',
+        sig='(time-set! seconds)',
+        desc='Sets the clock from Unix time (seconds since 1970, UTC): for a board without network time.',
+        returns='#t when the clock was set. Raises unless seconds is a number past 1700000000. Owner and system '
+                'apps only (as config-set!).',
+        example='''
+(time-set! 1794000000)   ; e.g. a phone sent it over Bluetooth
+''',
+        where=DEVICE, check=False,
+        since='1.18.0',
+        notes='With WiFi the clock comes from the network (SNTP) and this is not needed. A Bluetooth-only boot '
+              '([bluetooth] bt_only = 1) has no network: until something sets the clock, (time-local) is #f.',
+    ),
     api('time-local', 'time',
         sig='(time-local)',
         desc='The local time: (year month day hour minute second weekday), or #f.',

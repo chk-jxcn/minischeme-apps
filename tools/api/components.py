@@ -65,6 +65,7 @@ COMPONENTS = {
     'random':   ('Tools', 'Random numbers', 'Pseudo-random numbers.'),
     # Extensions (hardware-specific; see EXTENSIONS in api/__init__.py)
     'esp32':    ('Extensions', 'ESP32', 'Espressif ESP32 chip features: identity, reset cause, touch pads.'),
+    'ble':      ('Extensions', 'Bluetooth LE', 'Scanning, connections to peripherals (GATT client), advertising and a UART service for phones.'),
     # Host
     'host':     ('Host', 'PC REPL', 'Host files and processes; only in the PC REPL, never on a device.'),
 }
