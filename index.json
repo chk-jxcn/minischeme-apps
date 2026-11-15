@@ -219,9 +219,9 @@
   ],
   "web": true,
   "file": "matrix.msbc",
-  "size": 62491,
+  "size": 62572,
   "scm": "matrix.allinone.scm",
-  "hash": "9b4e1b98",
+  "hash": "4b513c1e",
   "applib": "1.1",
   "libs": [
    "gui",

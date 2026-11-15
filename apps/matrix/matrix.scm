@@ -137,11 +137,17 @@
                 (else (mx-col-add! 4) (mx-col-add! 0)))            ; "-" before the clock is set
           (loop (+ i 1))))))
 
+;; The clock's seconds, 0 .. 59 (app-sec is ":37")
+(define (mx-seconds)
+  (let* ((n (string-length app-sec))
+         (v (and (> n 1) (string->fixed (substring app-sec 1 n) 0))))
+    (if v (clamp v 0 59) 0)))
+
 (define (mx-clock-frame!)
   (if (and (= (remainder mx-t mx-ncols) 0) (not (equal? app-time mx-clock-text)))
       (mx-clock-text! app-time))                                   ; a new time starts with a new pass
   (let ((off (remainder mx-t mx-ncols))
-        (secs (quotient (* 8 (or (string->fixed app-sec 0) 0)) 60))
+        (secs (quotient (* 8 (mx-seconds)) 60))
         (own (vector-ref mx-colors 0)))
     (let xs ((x 0))
       (if (< x 8)
