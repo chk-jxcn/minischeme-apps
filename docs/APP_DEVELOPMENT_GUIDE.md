@@ -669,6 +669,11 @@ Rules:
   system-font text is then drawn in any face the server has, so do not rely on the exact
   width of a string; measure it with `txt-w` / `gui-text-width` in render, as always.
   Settings: config.ini `[fonts]` (minischeme-esp32 README, "Font server"); state: `(font-server)`.
+- **Simplified / traditional (API 1.17.1).** The user may have every Chinese character drawn
+  simplified or traditional (`[fonts] font_chinese`, the device page and the settings' 简繁).
+  Your strings do not change, only how they are drawn: widths and wrapping follow the drawn
+  characters, so measure in render as always. Write your own strings in simplified Chinese;
+  a traditional board draws them traditional (glyphs from the font server).
 - **Text from the web** (titles, names, comments) is full of characters the font ROM lacks.
   For API 1.11 send it as it is (the font server fills the gaps); for older firmware, or a
   board you know is offline, clean it **on the app server**, before it goes into the

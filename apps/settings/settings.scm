@@ -9,6 +9,7 @@
 ;;;   启动应用      which app the board starts ([system] boot_app)
 ;;;   网络 / 硬件 / 存储信息
 ;;;   时区          automatic (the app server tells it from the network address) or a zone
+;;;   简繁          Chinese on screen as written, simplified or traditional ([fonts] font_chinese)
 ;;;   退出设置      restart into the boot app
 ;;; Needs gui.scm loaded first (theme colors, fonts).
 ;;; =========================================================================
@@ -78,7 +79,7 @@
 
 ;; 2. State ---------------------------------------------------------------------------
 
-(define screen 'menu)                   ; menu apps market setup info-menu info reset tz confirm message error
+(define screen 'menu)                   ; menu apps market setup info-menu info reset tz chinese confirm message error
 (define failure #f)                     ; (last-app-stats) when the app failed: why we are here
 (define sel 0)                          ; selected row of menu / apps
 (define info-page 0)                    ; 0 network, 1 hardware, 2 storage
@@ -163,6 +164,31 @@
           ((string=? (cadr (car zs)) (tz-current)) i)
           (else (loop (cdr zs) (+ i 1))))))
 
+;; Chinese on screen: (title what value). The firmware draws every character in the chosen
+;; script at once (config.ini [fonts] font_chinese); traditional glyphs come from the font server.
+(define chinese-rows
+  '(("不转换" "按原文显示" "keep")
+    ("简体" "繁体字显示成简体" "simplified")
+    ("繁体" "简体字显示成繁体（字形第一次显示时从字体服务器下载）" "traditional")))
+
+;; The firmware draws in the chosen script since API 1.17.1; an older one would only store it
+(define (version-parts s)                ; "1.17.1" -> (1 17 1)
+  (let loop ((i 0) (n 0) (acc '()))
+    (cond ((>= i (string-length s)) (reverse (cons n acc)))
+          ((char=? (string-ref s i) #\.) (loop (+ i 1) 0 (cons n acc)))
+          (else (loop (+ i 1) (+ (* n 10) (- (char->integer (string-ref s i)) 48)) acc)))))
+
+(define chinese-supported?
+  (let ((v (version-parts (api-version))))
+    (or (> (car v) 1) (> (cadr v) 17) (and (= (cadr v) 17) (pair? (cddr v)) (>= (caddr v) 1)))))
+
+(define (chinese-index)
+  (let ((v (or (cfg "font_chinese") "keep")))
+    (let loop ((rs chinese-rows) (i 0))
+      (cond ((null? rs) 0)
+            ((string=? (caddr (car rs)) v) i)
+            (else (loop (cdr rs) (+ i 1)))))))
+
 (define (menu-items)
   (list (list "设置模式" "开启热点，在手机或电脑上设置 WiFi、启动应用和应用配置")
         (list "启动应用" (string-append "当前：" (app-name-of (boot-app-path))))
@@ -170,6 +196,9 @@
         (list "设备信息" "网络、硬件、存储")
         (list "恢复出厂" "清空程序 ROM、应用配置、文件系统或字库")
         (list "时区" (if (tz-auto?) (string-append "自动：" (tz-place)) (tz-name)))
+        (if chinese-supported?
+            (list "简繁" (string-append "当前：" (car (list-ref chinese-rows (chinese-index)))))
+            (list "简繁" "需要更新固件（1.0.100 起）"))
         (list "退出设置" (string-append "重启并运行 " (app-name-of (boot-app-path))))))
 
 ;; Second level: the information pages
@@ -221,11 +250,12 @@
 
 (define (render-list title items)
   (render-header title)
-  (let loop ((items items) (i 0) (y (+ HDR-H 8)))
-    (if (pair? items)
-        (begin
-          (render-row y 56 (car (car items)) (cadr (car items)) (= i sel) #f)
-          (loop (cdr items) (+ i 1) (+ y 56)))))
+  (let ((h (if (> (length items) 7) 50 56)))   ; eight rows fit above the footer at 50
+    (let loop ((items items) (i 0) (y (+ HDR-H 8)))
+      (if (pair? items)
+          (begin
+            (render-row y h (car (car items)) (cadr (car items)) (= i sel) #f)
+            (loop (cdr items) (+ i 1) (+ y h))))))
   (render-footer HINT-LIST))
 
 (define (render-menu) (render-list "系统设置" (menu-items)))
@@ -250,6 +280,20 @@
                         (= i sel)
                         (if (= i current) "当前" #f))
             (loop (+ i 1) (+ y 56))))))
+  (render-footer "短按：下一个  长按：选择  中长按：返回"))
+
+;; Simplified / traditional
+(define (render-chinese)
+  (render-header "简繁")
+  (let ((current (chinese-index)))
+    (let loop ((rs chinese-rows) (i 0) (y (+ HDR-H 8)))
+      (if (pair? rs)
+          (begin
+            (render-row y 56 (car (car rs)) (cadr (car rs)) (= i sel) (if (= i current) "当前" #f))
+            (loop (cdr rs) (+ i 1) (+ y 56))))))
+  (txt-wrap 20 (+ HDR-H 190) 280 100
+            "屏幕上的中文逐字转换，系统和所有应用都生效；一字多义的字（如“后/後”“发/發/髮”）可能转换不准。"
+            theme-text-sub)
   (render-footer "短按：下一个  长按：选择  中长按：返回"))
 
 ;; The reset about to run: what goes, and how to confirm
@@ -506,6 +550,7 @@
         ((eq? screen 'info-menu) (render-list "设备信息" (info-menu-items)))
         ((eq? screen 'reset) (render-list "恢复出厂" (reset-items)))
         ((eq? screen 'tz) (render-tz))
+        ((eq? screen 'chinese) (render-chinese))
         ((eq? screen 'confirm) (render-confirm))
         ((eq? screen 'message) (render-message))
         ((eq? screen 'error) (render-error))
@@ -532,6 +577,7 @@
         ((= sel 3) (set! apps (app-list)) (go 'info-menu))
         ((= sel 4) (go 'reset))
         ((= sel 5) (go 'tz) (set! sel (tz-index)) (redraw))
+        ((= sel 6) (if chinese-supported? (begin (go 'chinese) (set! sel (chinese-index)) (redraw))))
         (else (restart-soon "正在重启" (string-append "即将运行 " (app-name-of (boot-app-path)))))))
 
 (define (choose-info-menu)
@@ -551,6 +597,11 @@
     (config-set! "system" "timezone" (cadr z))
     (config-set! "system" "timezone_name" (if (= sel 0) "" (car z)))
     (back-to-menu 5)))
+
+;; The script of the selected row: the firmware draws the screen again in it at once
+(define (choose-chinese)
+  (config-set! "fonts" "font_chinese" (caddr (list-ref chinese-rows sel)))
+  (back-to-menu 6))
 
 ;; Back to the menu with item i selected
 (define (back-to-menu i) (go 'menu) (set! sel i) (redraw))
@@ -608,6 +659,7 @@
         ((eq? screen 'info-menu) (set! sel (remainder (+ sel 1) (length (info-menu-items)))) (redraw))
         ((eq? screen 'reset) (set! sel (remainder (+ sel 1) (length (reset-items)))) (redraw))
         ((eq? screen 'tz) (set! sel (remainder (+ sel 1) (length (tz-rows)))) (redraw))
+        ((eq? screen 'chinese) (set! sel (remainder (+ sel 1) (length chinese-rows))) (redraw))
         ((eq? screen 'confirm) (set! screen 'reset) (set! sel reset-sel) (redraw))   ; cancel
         ((and (eq? screen 'message) reset-failed) (set! reset-failed #f) (go 'reset))
         ((eq? screen 'error) (go 'menu))
@@ -622,6 +674,7 @@
         ((eq? screen 'info-menu) (choose-info-menu))
         ((eq? screen 'reset) (choose-reset))
         ((eq? screen 'tz) (choose-tz))
+        ((eq? screen 'chinese) (choose-chinese))
         ((eq? screen 'confirm) (run-reset))
         ((eq? screen 'error) (go 'menu))
         (else #f)))
@@ -635,6 +688,7 @@
         ((eq? screen 'info) (set! sel info-page) (set! screen 'info-menu) (redraw))
         ((eq? screen 'reset) (back-to-menu 4))
         ((eq? screen 'tz) (back-to-menu 5))
+        ((eq? screen 'chinese) (back-to-menu 6))
         ((eq? screen 'confirm) (set! screen 'reset) (set! sel reset-sel) (redraw))   ; cancel
         ((eq? screen 'setup) (back-to-menu 0))
         ((and (eq? screen 'message) reset-failed) (set! reset-failed #f) (go 'reset))
